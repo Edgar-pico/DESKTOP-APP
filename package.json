@@ -10,10 +10,13 @@
     "start-watch": "nodemon --watch . --ext js,html,css --exec electron .",
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "hash": "node scripts/hash-password.js"
+    "hash": "node scripts/hash-password.js",
+    "dist": "electron-builder --win nsis",
+    "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
     "electron": "^38.2.1",
+    "electron-builder": "^24.13.3",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-n": "^15.7.0",
@@ -29,5 +32,37 @@
     "bcryptjs": "^3.0.2",
     "dotenv": "^17.2.3",
     "mssql": "^12.0.0"
+  },
+  "build": {
+    "appId": "com.speqtrumaerospace.desktopapp",
+    "productName": "Desktop APP",
+    "asar": true,
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "config/",
+        "to": "config",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

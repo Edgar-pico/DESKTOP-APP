@@ -1,26 +1,28 @@
 const { app, BrowserWindow } = require('electron');
+const { loadEnv } = require('./utils/loadEnv');
+loadEnv(); // Cargar variables antes de usar DB u otros módulos
+
 const { registerAllIpc } = require('./ipc');
-const { createMainWindow } = require('./windows/mainWindow');
 const { createLoginWindow } = require('./windows/loginWindow');
 const { applyHardening } = require('./security/hardening');
 
-require('dotenv').config(); // Carga variables de entorno desde el archivo .env
+// Tu código existente...
+require('dotenv').config(); // opcional: puedes quitar esta línea si usas loadEnv() arriba
+
 const db = require('./services/db');
 
-  app.whenReady().then(() => {
-    //applyHardening(); 
-    registerAllIpc();
+app.whenReady().then(() => {
+  // applyHardening();
+  registerAllIpc();
+  createLoginWindow();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow?.getAllWindows?.()?.length === 0) {
     createLoginWindow();
-  });
+  }
+});
 
-  app.on('activate', () => {
-      if (createMainWindow && BrowserWindow?.getAllWindows?.()?.length === 0) {
-      createMainWindow();
-    }
-  })
-
-  app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-      app.quit()
-    } 
-  })
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});

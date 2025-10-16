@@ -1,2 +1,45 @@
-package-lock.json
-node_modules
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Usa npm: ignora locks de otros gestores
+yarn.lock
+pnpm-lock.yaml
+
+# Build de electron-builder
+dist/
+
+# Variables de entorno (credenciales)
+.env
+config/.env
+
+# Cachés y temporales
+.eslintcache
+*.tsbuildinfo
+coverage/
+.tmp/
+temp/
+*.tmp
+
+# SO / Editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Otros empaquetados locales
+*.7z
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.dmg
+*.exe
+*.appimage
