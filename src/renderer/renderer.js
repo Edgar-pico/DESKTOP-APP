@@ -1,3 +1,17 @@
+// Añade este bloque al inicio o dentro de DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+  // Botón de cerrar sesión
+  document.getElementById('btnLogout')?.addEventListener('click', async () => {
+    try {
+      await window.api.auth.logout();     // limpia la sesión en el main
+      await window.api.app.openLogin();   // cierra main y abre la ventana de login
+    } catch (e) {
+      console.error('Error al cerrar sesión:', e);
+    }
+  });
+});
+
+
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const ping = await window.api.ping();

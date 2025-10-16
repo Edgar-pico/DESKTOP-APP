@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('api', {
 
   app: {
     openMain: () => ipcRenderer.invoke('app:open-main'),
+    openLogin: () => ipcRenderer.invoke('app:open-login'),
   },
 
 })
