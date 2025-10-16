@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://localhost https://*; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta
+      http-equiv="X-Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'  https://www.google.com https://google.com; "
+    />
+    <title>Hello from Electron renderer!</title>
+  </head>
+  <body>
+    <h1>Hello from Electron renderer!</h1>
+    <p>👋</p>
+    <p id="info"></p>
+    <div>
+  <input id="search" placeholder="Buscar PN, descripción, vendor..." />
+  <button id="btnSearch">Buscar</button>
+  <span id="status"></span>
+</div>
+
+<table id="vmTable" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr>
+      <th>PartNumber</th>
+      <th>Description</th>
+      <th>Vendor</th>
+      <th>Qty/Per</th>
+      <th>Min</th>
+      <th>On Hand</th>
+      <th>Max</th>
+      <th>To Max</th>
+      <th>Family</th>
+      <th>WorkCenter</th>
+      <th>Buyer</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
