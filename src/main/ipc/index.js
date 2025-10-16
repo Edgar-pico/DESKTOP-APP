@@ -2,6 +2,7 @@ const { ipcMain,BrowserWindow } = require('electron');
 const { registerMaterialsIPC } = require('./materials.ipc');
 const {isAllowedExternal} = require('../security/hardening');
 const { registerAuthIPC } = require('./auth.ipc');
+const { getLoginWindow } = require('../windows/loginWindow');
 
 
 function registerAllIpc() {
@@ -34,6 +35,14 @@ function registerAllIpc() {
       return false;
     }
   });
+
+  ipcMain.handle('app:open-main', async () => {
+    createMainWindow();
+    const login = getLoginWindowWindow();
+    if (login && !login.isDestroyed()) login.close();
+    return true;
+  });
+
 }
 
 module.exports = { registerAllIpc };

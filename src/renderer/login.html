@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data:; style-src 'self'; object-src 'none'; base-uri 'self'">
+    <title>Login</title>
+  </head>
+  <body>
+    <h2>Iniciar sesión</h2>
+    <form id="loginForm">
+      <label for="username">Usuario</label><br />
+      <input id="username" autocomplete="username" /><br /><br />
+      <label for="password">Contraseña</label><br />
+      <input id="password" type="password" autocomplete="current-password" /><br /><br />
+      <button type="submit">Entrar</button>
+    </form>
+    <div id="status"></div>
+
+    <script src="./login.js"></script>
+  </body>
+</html>

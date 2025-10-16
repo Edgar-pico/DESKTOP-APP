@@ -1,6 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const { registerAllIpc } = require('./ipc');
 const { createMainWindow } = require('./windows/mainWindow');
+const { createLoginWindow } = require('./windows/loginWindow');
 const { applyHardening } = require('./security/hardening');
 
 require('dotenv').config(); // Carga variables de entorno desde el archivo .env
@@ -9,7 +10,7 @@ const db = require('./services/db');
   app.whenReady().then(() => {
     //applyHardening(); 
     registerAllIpc();
-    createMainWindow();
+    createLoginWindow();
   });
 
   app.on('activate', () => {
