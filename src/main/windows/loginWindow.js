@@ -8,11 +8,11 @@ function createLoginWindow() {
   if (loginWin && !loginWin.isDestroyed()) return loginWin;
 
   loginWin = new BrowserWindow({
-    width: 420,
-    height: 360,
+    width: 800,
+    height: 800,
     resizable: false,
     webPreferences: {
-      preload: path.join(__dirname, '../../preload/api/preload.js'),
+      preload: path.join(__dirname, '../../preload/preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: true,

@@ -1,7 +1,8 @@
 const { ipcMain,BrowserWindow } = require('electron');
 const { registerMaterialsIPC } = require('./materials.ipc');
-const {isAllowedExternal} = require('../security/hardening');
 const { registerAuthIPC } = require('./auth.ipc');
+const {isAllowedExternal} = require('../security/hardening');
+const { createMainWindow } = require('../windows/mainWindow');
 const { getLoginWindow } = require('../windows/loginWindow');
 
 
@@ -11,7 +12,7 @@ function registerAllIpc() {
 
   // Registra módulos por dominio
   registerMaterialsIPC();
-    registerAuthIPCAuthIPC();
+  registerAuthIPC();
 
    // Agregar el manejador para la navegación
       ipcMain.handle('navigate-to-url', async (event, url) => {
@@ -38,7 +39,7 @@ function registerAllIpc() {
 
   ipcMain.handle('app:open-main', async () => {
     createMainWindow();
-    const login = getLoginWindowWindow();
+    const login = getLoginWindow();
     if (login && !login.isDestroyed()) login.close();
     return true;
   });
