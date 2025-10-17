@@ -6,6 +6,9 @@ const { registerAllIpc } = require('./ipc');
 const { createLoginWindow } = require('./windows/loginWindow');
 const { applyHardening } = require('./security/hardening');
 
+const { registerModalScanRegisterIpc } = require('./ipc/modal-scan-register');
+
+
 // Tu código existente...
 require('dotenv').config(); // opcional: puedes quitar esta línea si usas loadEnv() arriba
 
@@ -14,6 +17,7 @@ const db = require('./services/db');
 app.whenReady().then(() => {
   // applyHardening();
   registerAllIpc();
+  registerModalScanRegisterIpc();
   createLoginWindow();
 });
 

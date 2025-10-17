@@ -30,4 +30,8 @@ contextBridge.exposeInMainWorld('api', {
     openLogin: () => ipcRenderer.invoke('app:open-login'),
   },
 
+  modal: {
+    openScanRegister: (payload) => ipcRenderer.invoke('modal:scan-register-open', payload),
+  },
+
 })

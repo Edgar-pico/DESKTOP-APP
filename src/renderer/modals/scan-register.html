@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'">
+  <title>Registrar Job</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 16px; }
+    .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .label { width: 120px; color: #444; }
+    .val { font-weight: 600; }
+    .error { color: #b00020; }
+    .ok { color: #136f14; }
+    input[type="text"], input[type="number"] { padding: 6px 8px; font-size: 15px; }
+    button { padding: 6px 12px; }
+    .box { border: 1px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
+    .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+    .muted { color: #666; }
+  </style>
+</head>
+<body>
+  <h3>Registrar Job en Área</h3>
+
+  <div class="box">
+    <div class="row">
+      <label class="label" for="job">Job</label>
+      <input id="job" type="text" placeholder="Escanea o escribe el Job" autocomplete="off" />
+      <button id="btnBuscar">Buscar</button>
+      <span id="jobMsg" class="error"></span>
+    </div>
+
+    <div id="info" class="muted">Capture el Job y presione Buscar.</div>
+
+    <div id="datos" class="box" style="display:none;">
+      <div class="row"><div class="label">Job</div><div class="val" id="vJob"></div></div>
+      <div class="row"><div class="label">PartNumber</div><div class="val" id="vPart"></div></div>
+      <div class="row"><div class="label">Descripción</div><div class="val" id="vDesc"></div></div>
+      <div class="row"><div class="label">Order_Qty</div><div class="val" id="vOrderQty"></div></div>
+      <div class="row"><div class="label">Status ERP</div><div class="val" id="vStatus"></div></div>
+      <div class="row">
+        <label class="label" for="qty">Cantidad</label>
+        <input id="qty" type="number" min="1" step="1" value="1" />
+        <span id="qtyMsg" class="error"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="btnCancelar" type="button">Cancelar</button>
+    <button id="btnAceptar" disabled>Aceptar</button>
+  </div>
+
+  <script src="./scan-register.js"></script>
+</body>
+</html>
