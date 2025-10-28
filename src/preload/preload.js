@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('api', {
   // NUEVO: SP desde la vista Deburr (renderer principal)
   jobProcess: {
     scanRegister: (payload) => ipcRenderer.invoke('jobProcess:scanRegister', payload),
+    list: (payload = null) => ipcRenderer.invoke('jobProcess:list', payload),
   },
 
   // Opcional: también puedes exponer ERP aquí si lo quieres en otras vistas

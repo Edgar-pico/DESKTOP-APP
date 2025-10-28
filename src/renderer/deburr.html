@@ -1,17 +1,75 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data:; style-src 'self'; object-src 'none'; base-uri 'self'">
-    <title>Deburr</title>
-  </head>
-  <body>
-    <button id="btnLogout">Cerrar sesión</button>
-    <h1>Módulo Deburr</h1>
-    <div id="me"></div>
-    <button id="btnOpenRegister">Registrar Job</button>
-    <span id="deburrMsg" class="muted"></span>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data:; style-src 'self'; object-src 'none'; base-uri 'self'">
+  <title>Deburr</title>
+  <link rel="stylesheet" href="./styles/deburr.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <button id="btnLogout" class="btn btn-secondary">Cerrar sesión</button>
+      <h1>Módulo Deburr</h1>
+      <div id="me" class="user-info"></div>
+    </header>
 
-    <script src="./deburr.js"></script>
-  </body>
+    <section class="toolbar">
+      <div class="toolbar-left">
+        <button id="btnOpenRegister" class="btn btn-primary">Registrar Job</button>
+        <span id="deburrMsg" class="muted"></span>
+      </div>
+
+      <div class="filters">
+        <label class="filter">
+          <span>Estatus</span>
+          <select id="selStatus">
+            <option value="activos" selected>Activos (Almacenado + En proceso)</option>
+            <option value="Almacenado">Almacenado</option>
+            <option value="En proceso">En proceso</option>
+            <option value="Detenido">Detenido</option>
+            <option value="Completado">Completado</option>
+            <option value="todos">Todos</option>
+          </select>
+        </label>
+
+        <label class="filter">
+          <span>Área</span>
+          <select id="selArea">
+            <option value="Deburr" selected>Deburr</option>
+            <option value="Quality">Quality</option>
+            <option value="Retrabajo">Retrabajo</option>
+            <option value="todas">Todas</option>
+          </select>
+        </label>
+
+        <button id="btnDeburrRefresh" class="btn">Refrescar</button>
+      </div>
+    </section>
+
+    <section class="table-wrap">
+      <table id="deburrTable">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th>Job</th>
+            <th>PartNumber</th>
+            <th>Descripción</th>
+            <th>Order_Qty</th>
+            <th>Área</th>
+            <th>Qty_Real_Ingresada</th>
+            <th>Estatus</th>
+            <th>FechaRegistro</th>
+            <th>FechaActualización</th>
+          </tr>
+        </thead>
+        <tbody id="deburrTbody">
+          <tr><td class="center" colspan="10">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <script src="./deburr.js"></script>
+</body>
 </html>
