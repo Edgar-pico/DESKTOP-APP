@@ -30,8 +30,18 @@ contextBridge.exposeInMainWorld('api', {
     openLogin: () => ipcRenderer.invoke('app:open-login'),
   },
 
-  modal: {
+    modal: {
     openScanRegister: (payload) => ipcRenderer.invoke('modal:scan-register-open', payload),
+  },
+
+  // NUEVO: SP desde la vista Deburr (renderer principal)
+  jobProcess: {
+    scanRegister: (payload) => ipcRenderer.invoke('jobProcess:scanRegister', payload),
+  },
+
+  // Opcional: también puedes exponer ERP aquí si lo quieres en otras vistas
+  erp: {
+    getJobInfo: (job) => ipcRenderer.invoke('erp:getJobInfo', job),
   },
 
 })

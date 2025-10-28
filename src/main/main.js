@@ -6,6 +6,8 @@ const { registerAllIpc } = require('./ipc');
 const { createLoginWindow } = require('./windows/loginWindow');
 const { applyHardening } = require('./security/hardening');
 
+const { registerErpIpc } = require('./ipc/erp');
+const { registerJobProcessIpc } = require('./ipc/job-process');
 const { registerModalScanRegisterIpc } = require('./ipc/modal-scan-register');
 
 
@@ -17,7 +19,9 @@ const db = require('./services/db');
 app.whenReady().then(() => {
   // applyHardening();
   registerAllIpc();
-  registerModalScanRegisterIpc();
+  registerErpIpc();
+  registerModalScanRegisterIpc(); // <- no olvides este
+  registerJobProcessIpc();
   createLoginWindow();
 });
 

@@ -1,12 +1,6 @@
 const path = require('path');
 const { BrowserWindow, ipcMain } = require('electron');
 
-/**
- * Abre un modal para capturar y validar la cantidad de un Job.
- * El modal NO llama al SP; solo retorna { confirmed, job, qty }.
- * El parent debe luego ejecutar el SP con Área y UsuarioId de la sesión.
- * calidadWin.loadFile(path.join(__dirname, '../../renderer/calidad.html'));
- */
 function openScanRegisterModal(parent, payload) {
   return new Promise((resolve) => {
     const win = new BrowserWindow({
@@ -23,21 +17,20 @@ function openScanRegisterModal(parent, payload) {
         contextIsolation: true,
         sandbox: true,
         nodeIntegration: false,
+        // PRELOAD DEDICADO DEL MODAL
         preload: path.join(__dirname, '..', '..', 'preload', 'scan-register-modal.js'),
       },
     });
 
     const htmlPath = path.join(__dirname, '..', '..', 'renderer', 'modals', 'scan-register.html');
-    win.loadFile(htmlPath).catch(() => {});
+    win.loadFile(htmlPath).catch((e) => console.error('loadFile error:', e));
 
-    // Enviar datos iniciales (por ejemplo, área desde el parent)
     win.once('ready-to-show', () => {
       win.show();
       win.webContents.send('scan-register:init', payload || {});
     });
 
     function onClose(ev, data) {
-      // Asegura que el mensaje venga de este modal
       if (ev.sender.id !== win.webContents.id) return;
       cleanup();
       if (!win.isDestroyed()) win.close();
