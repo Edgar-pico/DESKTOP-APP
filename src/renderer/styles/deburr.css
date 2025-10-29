@@ -125,6 +125,8 @@ thead th {
   text-align: left;
   padding: 10px;
   white-space: nowrap;
+  overflow: hidden;        /* evita que el texto del th empuje el ancho */
+  text-overflow: ellipsis; /* muestra … cuando no cabe */
   z-index: 1;
 }
 tbody td {
@@ -137,11 +139,20 @@ tbody td {
 tbody tr:nth-child(even) { background: var(--row-alt); }
 .center { text-align: center; }
 
-/* Descripción: truncado elegante */
+/* Descripción truncada en una línea */
 td:nth-child(4) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Celdas de fecha con estilo y tamaño razonable */
+.cell-date {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;   /* ajusta si necesitas más/menos */
+  cursor: help;       /* indica que tiene tooltip */
 }
 
 .badge {
@@ -154,21 +165,11 @@ td:nth-child(4) {
   border: 1px solid var(--border);
 }
 
-.cell-date {
-  white-space: nowrap;         /* en una línea */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;            /* ajusta si necesitas más/menos */
-  cursor: help;                /* indica que tiene tooltip */
-}
-
 /* Colores por estatus */
 .badge.status-almacenado { background: #0b2e1d; border-color: #134e29; color: #b7f7cd; }
 .badge.status-en-proceso { background: #12253a; border-color: #1f4e7a; color: #bfe1ff; }
 .badge.status-detenido   { background: #3a1a1a; border-color: #6b1f1f; color: #ffd6d6; }
 .badge.status-completado { background: #112b1c; border-color: #1e4d34; color: #c6f6d5; }
 
-/* Columnas algo más angostas donde aplica */
-td:nth-child(1), td:nth-child(5), td:nth-child(7) { width: 90px; }
-td:nth-child(2), td:nth-child(3), td:nth-child(6) { width: 140px; }
-td:nth-child(9), td:nth-child(10) { width: 180px; white-space: nowrap; }
+/* Eliminamos anchos forzados por nth-child que desalineaban columnas
+   (si prefieres anchos fijos, usa <colgroup> en el HTML para definirlos) */

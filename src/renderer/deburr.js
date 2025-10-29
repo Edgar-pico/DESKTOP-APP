@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const d = new Date(val);
     if (isNaN(d.getTime())) return String(val);
     const pad = (n) => String(n).padStart(2, '0');
-    // YYYY-MM-DD HH:mm (sin segundos, sin AM/PM para hacerla más corta)
+    // YYYY-MM-DD HH:mm (sin segundos)
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const tdFechaAct = makeDateCell(r.FechaActualizacion);
 
       const cells = [
-        // Si ocultaste Id, inicia con Job; mantengo el orden de tu UI
+        r.Id,              // ← añadido para alinear con el thead (10 columnas)
         r.Job,
         r.PartNumber,
         r.Descripcion,
