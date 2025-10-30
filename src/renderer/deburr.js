@@ -5,23 +5,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       me?.user ? `Usuario: ${me.user.Nombre || me.user.UserName} | Área: ${me.user.Area || '-'}` : 'Sin sesión';
   } catch {}
 
-  document.getElementById('btnLogout')?.addEventListener('click', async () => {
-    await window.api.auth.logout();
-    await window.api.app.openLogin();
-  });
+ document.getElementById('btnLogout')?.addEventListener('click', async () => {
+  await window.api.auth.logout();
+  await window.api.app.openLogin(); // cierra esta ventana y abre login
+});
 
-  document.getElementById('btnOpenRegister')?.addEventListener('click', onOpenRegister);
+  const btnOpenRegister = document.getElementById('btnOpenRegister'); // ← referenciar botón
+  btnOpenRegister?.addEventListener('click', onOpenRegister);
   document.getElementById('btnDeburrRefresh')?.addEventListener('click', loadDeburrList);
 
-  document.getElementById('selStatus')?.addEventListener('change', loadQuick);
-  document.getElementById('selArea')?.addEventListener('change', loadQuick);
+  // Acciones masivas
+  const btnInProc = document.getElementById('btnSetInProcess');
+  const btnComplete = document.getElementById('btnSetComplete');
+
+  btnInProc?.addEventListener('click', () => bulkChange('En proceso'));
+
+  if (btnComplete) {
+    btnComplete.disabled = true;
+    btnComplete.title = 'Completar solo puede hacerse en el área de Quality al recibir el material.';
+    btnComplete.addEventListener('click', () => {
+      setMsg('Completar solo puede hacerse en el área de Quality al recibir el material.');
+    });
+  }
+
+  let highlightId = null;
+  const selected = new Set();
+  const lastRowsMap = new Map();
 
   await loadDeburrList();
 
+  // Limpia el mensaje de error de Electron y deja solo el contenido útil
+  function prettyError(err) {
+    const raw = String(err?.message || err || '');
+    return raw
+      .replace(/^Error invoking remote method '.*?':\s*/i, '') // quita prefijo de ipc
+      .replace(/^Error:\s*/i, '')                               // quita doble "Error:"
+      .trim();
+  }
+
   async function onOpenRegister() {
+    if (btnOpenRegister) btnOpenRegister.disabled = true;
     try {
+      // Área fija Deburr en esta vista
+      const area = 'Deburr';
       const me = await window.api.auth.me();
-      const area = me?.user?.Area || 'Deburr';
       const usuarioId = me?.user?.UsuarioId || me?.user?.UserName;
 
       const res = await window.api.modal.openScanRegister({ area });
@@ -29,10 +56,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { job, qty } = res;
         const r = await window.api.jobProcess.scanRegister({ job, area, qty, usuarioId });
         setMsg(`OK: Job ${job} registrado con Qty ${qty} (Id ${r?.Id ?? '?'})`);
-        await loadDeburrList(); // refresco automático tras registrar
+        highlightId = r?.Id ?? null;
+        await loadDeburrList();
+        if (highlightId) setTimeout(() => { highlightId = null; }, 4000);
       }
     } catch (e) {
-      setMsg(`Error: ${e?.message || e}`);
+      setMsg(`Error: ${prettyError(e)}`);
+    } finally {
+      if (btnOpenRegister) btnOpenRegister.disabled = false;
     }
   }
 
@@ -41,26 +72,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (el) el.textContent = t || '';
   }
 
+  // Filtros fijos: solo Deburr y estatus Activos (Almacenado + En proceso)
   function getFilters() {
-    const sVal = document.getElementById('selStatus').value;
-    const aVal = document.getElementById('selArea').value;
-
-    const statusMap = { activos: ['Almacenado', 'En proceso'], todos: [] };
-    const areaMap = { todas: [] };
-
-    const statusList = statusMap[sVal] ?? [sVal];
-    const areaList = aVal in areaMap ? areaMap[aVal] : [aVal];
-
-    return { statusList, areaList };
+    return {
+      statusList: ['Almacenado', 'En proceso'],
+      areaList: ['Deburr'],
+      areaSelected: 'Deburr',
+    };
   }
 
-  // Fecha compacta para que no choque. Tooltip con fecha completa.
   function fmtDateCompact(val) {
     if (val == null) return '';
     const d = new Date(val);
     if (isNaN(d.getTime())) return String(val);
     const pad = (n) => String(n).padStart(2, '0');
-    // YYYY-MM-DD HH:mm (sin segundos)
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
@@ -68,7 +93,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const td = document.createElement('td');
     td.className = 'cell-date';
     td.textContent = fmtDateCompact(val);
-    // Tooltip con la fecha local completa
     try { td.title = new Date(val).toLocaleString(); } catch {}
     return td;
   }
@@ -82,31 +106,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     return '';
   }
 
+  function updateSelCount() {
+    const el = document.getElementById('selCount');
+    if (el) el.textContent = `${selected.size} seleccionados`;
+  }
+
+  function attachRowSelect(tr, id) {
+    tr.dataset.id = String(id);
+    tr.classList.add('row-clickable');
+    tr.addEventListener('click', (e) => {
+      if (window.getSelection()?.toString()) return;
+      if (selected.has(id)) {
+        selected.delete(id);
+        tr.classList.remove('row-selected');
+      } else {
+        selected.add(id);
+        tr.classList.add('row-selected');
+      }
+      updateSelCount();
+    });
+  }
+
   function renderRows(rows) {
     const tbody = document.getElementById('deburrTbody');
     tbody.innerHTML = '';
+    lastRowsMap.clear();
 
     if (!rows || rows.length === 0) {
       tbody.innerHTML = `<tr><td class="center" colspan="10">Sin registros</td></tr>`;
       return;
     }
 
+    let scrolled = false;
+
     for (const r of rows) {
+      lastRowsMap.set(r.Id, r);
+
       const tr = document.createElement('tr');
 
-      // Badge de estatus
       const tdEstatus = document.createElement('td');
       const badge = document.createElement('span');
       badge.className = `badge ${statusClass(r.Estatus)}`;
       badge.textContent = r.Estatus ?? '';
       tdEstatus.appendChild(badge);
 
-      // Fechas como celdas con clase .cell-date
       const tdFechaReg = makeDateCell(r.FechaRegistro);
       const tdFechaAct = makeDateCell(r.FechaActualizacion);
 
       const cells = [
-        r.Id,              // ← añadido para alinear con el thead (10 columnas)
+        r.Id,
         r.Job,
         r.PartNumber,
         r.Descripcion,
@@ -127,8 +175,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
 
+      if (selected.has(r.Id)) tr.classList.add('row-selected');
+      attachRowSelect(tr, r.Id);
+
+      if (highlightId && r.Id === highlightId && !scrolled) {
+        tr.classList.add('row-highlight');
+        setTimeout(() => tr.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+        scrolled = true;
+      }
+
       tbody.appendChild(tr);
     }
+
+    // Limpia selección de ids que ya no existen
+    for (const id of Array.from(selected)) {
+      if (!lastRowsMap.has(id)) selected.delete(id);
+    }
+    updateSelCount();
   }
 
   async function loadDeburrList() {
@@ -138,11 +201,46 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderRows(rows);
     } catch (e) {
       console.error('Error cargando Deburr:', e);
-      setMsg(`No se pudieron cargar los registros: ${e?.message || e}`);
+      setMsg(`No se pudieron cargar los registros: ${prettyError(e)}`);
       renderRows([]);
     }
   }
 
+  async function bulkChange(newStatus) {
+    if (selected.size === 0) {
+      setMsg('Selecciona al menos un registro');
+      return;
+    }
+    if (newStatus === 'Completado') {
+      setMsg('Completar solo puede hacerse en el área de Quality al recibir el material.');
+      return;
+    }
+
+    try {
+      const me = await window.api.auth.me();
+      const usuarioId = me?.user?.UsuarioId || me?.user?.UserName || 'system';
+
+      const items = Array.from(selected).map(id => {
+        const r = lastRowsMap.get(id);
+        return { job: r?.Job, area: r?.Area };
+      }).filter(it => it.job && it.area);
+
+      const res = await window.api.jobProcess.changeStatus({
+        items,
+        newStatus,
+        usuarioId,
+      });
+
+      const ok = res?.affected ?? 0;
+      const err = (res?.errors || []).length;
+      setMsg(`Estatus actualizado a "${newStatus}" en ${ok} registro(s).${err ? ` Errores: ${err}.` : ''}`);
+      await loadDeburrList();
+    } catch (e) {
+      setMsg(`Error al actualizar estatus: ${prettyError(e)}`);
+    }
+  }
+
+  // No hay filtros, dejamos el helper por compatibilidad (no se usa)
   let t;
   function loadQuick() {
     clearTimeout(t);

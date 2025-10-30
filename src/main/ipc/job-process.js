@@ -106,6 +106,58 @@ function registerJobProcessIpc() {
   });
 
 
+ // NUEVO: cambio de estatus vía SP JobProcess_ChangeStatus (Job+Área activo)
+  // payload: { items: [{ job, area, piezasBuenas?, piezasMalas?, motivo? }], newStatus, usuarioId }
+  ipcMain.handle('jobProcess:changeStatus', async (_event, payload) => {
+    const newStatus = String(payload?.newStatus ?? '').trim();
+    const usuarioId = String(payload?.usuarioId ?? '').trim();
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+
+    const allowed = new Set(['En proceso','Completado','Detenido']);
+    if (!allowed.has(newStatus)) throw new Error('newStatus inválido');
+    if (!usuarioId) throw new Error('usuarioId requerido');
+    if (!items.length) throw new Error('items vacío');
+
+    // Regla de negocio: solo Calidad puede marcar Completado
+    if (newStatus === 'Completado' && items.some(it => String(it?.area).trim() !== 'Quality')) {
+      throw new Error('Solo el área "Quality" puede marcar "Completado". Entrega a Calidad y que ellos registren.');
+    }
+
+    const pool = await getPool();
+
+    const result = { affected: 0, errors: [] };
+    for (const it of items) {
+      const job = String(it?.job ?? '').trim();
+      const area = String(it?.area ?? '').trim();
+      const piezasBuenas = it?.piezasBuenas != null ? Number(it.piezasBuenas) : null;
+      const piezasMalas = it?.piezasMalas != null ? Number(it.piezasMalas) : null;
+      const motivo = it?.motivo != null ? String(it.motivo).trim() : null;
+
+      if (!job || !area) {
+        result.errors.push({ job, area, message: 'job/area requeridos' });
+        continue;
+      }
+      try {
+        const req = pool.request()
+          .input('Job',          sql.VarChar(20), job)
+          .input('Area',         sql.VarChar(20), area)
+          .input('NuevoEstatus', sql.VarChar(20), newStatus)
+          .input('UsuarioId',    sql.VarChar(10), usuarioId)
+          .input('PiezasBuenas', sql.Int, piezasBuenas)
+          .input('PiezasMalas',  sql.Int, piezasMalas)
+          .input('Motivo',       sql.NVarChar(200), motivo);
+
+        const r = await req.execute('dbo.JobProcess_ChangeStatus');
+        if (r?.recordset?.length) result.affected += 1;
+      } catch (err) {
+        result.errors.push({ job, area, message: err?.message || String(err) });
+      }
+    }
+
+    return result;
+  });
+
+  
   console.log('[IPC] handler registrado: jobProcess:scanRegister');
 }
 

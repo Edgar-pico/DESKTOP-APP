@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('api', {
   jobProcess: {
     scanRegister: (payload) => ipcRenderer.invoke('jobProcess:scanRegister', payload),
     list: (payload = null) => ipcRenderer.invoke('jobProcess:list', payload),
+    changeStatus: (payload) => ipcRenderer.invoke('jobProcess:changeStatus', payload), // ← nuevo
   },
 
   // Opcional: también puedes exponer ERP aquí si lo quieres en otras vistas

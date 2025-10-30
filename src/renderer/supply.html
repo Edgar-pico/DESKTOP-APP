@@ -3,39 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data:; style-src 'self'; object-src 'none'; base-uri 'self'">
-  <title>Deburr</title>
+  <title>Supply Chain</title>
   <link rel="stylesheet" href="./styles/deburr.css">
 </head>
 <body>
   <div class="page">
     <header class="page-header">
       <button id="btnLogout" class="btn btn-secondary">Cerrar sesión</button>
-      <h1>Módulo Deburr</h1>
+      <h1>Módulo Supply Chain</h1>
       <div id="me" class="user-info"></div>
     </header>
 
     <section class="toolbar">
       <div class="toolbar-left">
-        <button id="btnOpenRegister" class="btn btn-primary">Registrar Job</button>
-        <button id="btnDeburrRefresh" class="btn">Refrescar</button>
-        <span id="deburrMsg" class="muted"></span>
+        <span id="supplyMsg" class="muted"></span>
       </div>
-      <!-- Sin filtros en Deburr -->
-      <div></div>
-    </section>
 
-    <!-- Acciones masivas -->
-    <section class="bulk-bar">
-      <div class="bulk-left">
-        <button id="btnSetInProcess" class="btn">Poner en proceso</button>
-      </div>
-      <div class="bulk-right">
-        <span id="selCount" class="muted">0 seleccionados</span>
+      <div class="filters">
+        <label class="filter">
+          <span>Estatus</span>
+          <select id="selStatus">
+            <option value="activos" selected>Activos (Almacenado + En proceso)</option>
+            <option value="Almacenado">Almacenado</option>
+            <option value="En proceso">En proceso</option>
+            <option value="Detenido">Detenido</option>
+            <option value="Completado">Completado</option>
+            <option value="todos">Todos</option>
+          </select>
+        </label>
+
+        <label class="filter">
+          <span>Área</span>
+          <select id="selArea">
+            <option value="Deburr" selected>Deburr</option>
+            <option value="Quality">Quality</option>
+            <option value="todas">Todas</option>
+          </select>
+        </label>
+
+        <button id="btnRefresh" class="btn">Refrescar</button>
       </div>
     </section>
 
     <section class="table-wrap">
-      <table id="deburrTable">
+      <table id="supplyTable">
         <thead>
           <tr>
             <th>Id</th>
@@ -50,13 +61,13 @@
             <th>FechaActualización</th>
           </tr>
         </thead>
-        <tbody id="deburrTbody">
+        <tbody id="supplyTbody">
           <tr><td class="center" colspan="10">Cargando...</td></tr>
         </tbody>
       </table>
     </section>
   </div>
 
-  <script src="./deburr.js"></script>
+  <script src="./supply.js"></script>
 </body>
 </html>
