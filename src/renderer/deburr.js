@@ -44,28 +44,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function onOpenRegister() {
-    if (btnOpenRegister) btnOpenRegister.disabled = true;
-    try {
-      // Área fija Deburr en esta vista
-      const area = 'Deburr';
-      const me = await window.api.auth.me();
-      const usuarioId = me?.user?.UsuarioId || me?.user?.UserName;
+  if (btnOpenRegister) btnOpenRegister.disabled = true;
+  try {
+    const area = 'Deburr';
+    const me = await window.api.auth.me();
+    const usuarioId = me?.user?.UsuarioId || me?.user?.UserName;
 
-      const res = await window.api.modal.openScanRegister({ area });
-      if (res?.confirmed) {
-        const { job, qty } = res;
-        const r = await window.api.jobProcess.scanRegister({ job, area, qty, usuarioId });
-        setMsg(`OK: Job ${job} registrado con Qty ${qty} (Id ${r?.Id ?? '?'})`);
-        highlightId = r?.Id ?? null;
-        await loadDeburrList();
-        if (highlightId) setTimeout(() => { highlightId = null; }, 4000);
-      }
-    } catch (e) {
-      setMsg(`Error: ${prettyError(e)}`);
-    } finally {
-      if (btnOpenRegister) btnOpenRegister.disabled = false;
+    const res = await window.api.modal.openScanRegister({ area });
+    if (res?.confirmed) {
+      const { job, qty, piezasBuenas, piezasMalas } = res;
+      const r = await window.api.jobProcess.scanRegister({
+        job, area, qty, usuarioId,
+        piezasBuenas, piezasMalas, // NUEVO
+      });
+      setMsg(`OK: Job ${job} registrado. Buenas ${piezasBuenas}, Scrap ${piezasMalas} (Total ${qty}). Id ${r?.Id ?? '?'}`);
+      highlightId = r?.Id ?? null;
+      await loadDeburrList();
+      if (highlightId) setTimeout(() => { highlightId = null; }, 4000);
     }
+  } catch (e) {
+    setMsg(`Error: ${prettyError(e)}`);
+  } finally {
+    if (btnOpenRegister) btnOpenRegister.disabled = false;
   }
+}
 
   function setMsg(t) {
     const el = document.getElementById('deburrMsg');

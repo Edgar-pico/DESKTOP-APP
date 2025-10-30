@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const { sql, getPool, executeQuery } = require('../services/db');
+const { getCurrentSession } = require('./auth.ipc');
 
 // Utilidad para sanear identificadores tipo schema.nombre
 function quoteIdent(name) {
@@ -24,20 +25,35 @@ function buildInParams(values, baseName) {
   return { placeholders, params };
 }
 
+// Sesión
+function mustAuth() {
+  const s = getCurrentSession?.();
+  if (!s) throw new Error('No autenticado');
+  return s;
+}
+function sessArea() {
+  const s = getCurrentSession?.();
+  return String(s?.Area || '').trim();
+}
 
-
-
-
-
-// Handler para ejecutar el SP dbo.JobProcess_ScanRegister
+// Handlers JobProcess
 function registerJobProcessIpc() {
-
-
+  // Registrar (Deburr/Quality). Deburr: requiere Buenas/Scrap; Supply: prohibido
   ipcMain.handle('jobProcess:scanRegister', async (_event, payload) => {
-    const job = String(payload?.job ?? '').trim();
-    const area = String(payload?.area ?? '').trim();
-    const qty = Number.parseInt(payload?.qty ?? 0, 10);
+    mustAuth();
+    const areaSess = sessArea();
+    if (areaSess === 'Supply Chain') throw new Error('Supply Chain no puede registrar trabajos.');
+
+    const job       = String(payload?.job ?? '').trim();
+    const qty       = Number.parseInt(payload?.qty ?? 0, 10);
     const usuarioId = String(payload?.usuarioId ?? '').trim();
+    const piezasOk  = payload?.piezasBuenas != null ? Number.parseInt(payload.piezasBuenas, 10) : null;
+    const piezasNg  = payload?.piezasMalas  != null ? Number.parseInt(payload.piezasMalas, 10)  : null;
+
+    // Forzar área por sesión
+    const area = areaSess === 'Deburr' ? 'Deburr'
+               : areaSess === 'Quality' ? 'Quality'
+               : String(payload?.area ?? '').trim();
 
     if (!job) throw new Error('Parámetro job es requerido');
     if (!area) throw new Error('Parámetro area es requerido');
@@ -47,29 +63,30 @@ function registerJobProcessIpc() {
     try {
       const pool = await getPool();
       const r = await pool.request()
-        .input('Job', sql.VarChar(20), job)
-        .input('Area', sql.VarChar(20), area)
-        .input('QtyIngresada', sql.Int, qty)
-        .input('UsuarioId', sql.VarChar(10), usuarioId)
-        // Usa execute para Stored Procedure; si en tu entorno prefieres .query con EXEC, también funciona.
+        .input('Job',           sql.VarChar(20), job)
+        .input('Area',          sql.VarChar(20), area)
+        .input('QtyIngresada',  sql.Int, qty)
+        .input('UsuarioId',     sql.VarChar(10), usuarioId)
+        .input('PiezasBuenas',  sql.Int, piezasOk) // Deburr: requerido (validado en SP)
+        .input('PiezasMalas',   sql.Int, piezasNg) // Deburr: requerido (validado en SP)
         .execute('dbo.JobProcess_ScanRegister');
 
-      // Devuelve la primera fila insertada por el SP (SELECT final del SP)
       return r?.recordset?.[0] || null;
     } catch (err) {
-      // Propaga el mensaje del SP (incluye códigos 5300x si aplica)
       throw new Error(err?.message || String(err));
     }
   });
 
-
-  // NUEVO: listar registros desde la vista con filtros por Estatus y Área
+  // Listar (filtra por área según sesión: Deburr/Quality; Supply puede ver todas)
   /**
-   * Payload soportado:
-   * - Array => se interpreta como statusList (compatibilidad)
-   * - Objeto => { statusList?: string[]|string, areaList?: string[]|string }
+   * payload:
+   * - Array => statusList (compat)
+   * - Object => { statusList?: string[]|string, areaList?: string[]|string }
    */
   ipcMain.handle('jobProcess:list', async (_event, payload = null) => {
+    mustAuth();
+    const areaSess = sessArea();
+
     let statusList = [];
     let areaList = [];
 
@@ -79,6 +96,13 @@ function registerJobProcessIpc() {
       statusList = normalizeArray(payload.statusList);
       areaList   = normalizeArray(payload.areaList);
     }
+
+    // Forzar área por sesión
+    if (areaSess === 'Deburr') {
+      areaList = ['Deburr'];
+    } else if (areaSess === 'Quality') {
+      areaList = ['Quality'];
+    } // Supply Chain: sin restricción adicional
 
     const clauses = [];
     const params = [];
@@ -105,38 +129,57 @@ function registerJobProcessIpc() {
     return rows || [];
   });
 
-
- // NUEVO: cambio de estatus vía SP JobProcess_ChangeStatus (Job+Área activo)
+  // Cambio de estatus (reglas por rol). Deburr: solo 'En proceso'; Supply: prohibido; Quality: En proceso/Detenido/Completado
   // payload: { items: [{ job, area, piezasBuenas?, piezasMalas?, motivo? }], newStatus, usuarioId }
   ipcMain.handle('jobProcess:changeStatus', async (_event, payload) => {
+    mustAuth();
+    const areaSess = sessArea();
+
     const newStatus = String(payload?.newStatus ?? '').trim();
     const usuarioId = String(payload?.usuarioId ?? '').trim();
     const items = Array.isArray(payload?.items) ? payload.items : [];
 
-    const allowed = new Set(['En proceso','Completado','Detenido']);
-    if (!allowed.has(newStatus)) throw new Error('newStatus inválido');
+    const allowedGlobal = new Set(['En proceso', 'Completado', 'Detenido']);
+    if (!allowedGlobal.has(newStatus)) throw new Error('newStatus inválido');
     if (!usuarioId) throw new Error('usuarioId requerido');
     if (!items.length) throw new Error('items vacío');
 
-    // Regla de negocio: solo Calidad puede marcar Completado
+    if (areaSess === 'Supply Chain') {
+      throw new Error('Supply Chain no puede cambiar estatus.');
+    }
+
+    // Reglas por sesión
+    if (areaSess === 'Deburr') {
+      if (newStatus !== 'En proceso') {
+        throw new Error('Deburr solo puede establecer "En proceso".');
+      }
+      // Forzar área Deburr en todos los items
+      for (const it of items) it.area = 'Deburr';
+    } else if (areaSess === 'Quality') {
+      const allowedQuality = new Set(['En proceso', 'Completado', 'Detenido']);
+      if (!allowedQuality.has(newStatus)) throw new Error('newStatus inválido para Quality');
+    }
+
+    // Regla cruzada: Completado solo Quality
     if (newStatus === 'Completado' && items.some(it => String(it?.area).trim() !== 'Quality')) {
-      throw new Error('Solo el área "Quality" puede marcar "Completado". Entrega a Calidad y que ellos registren.');
+      throw new Error('Solo el área "Quality" puede marcar "Completado".');
     }
 
     const pool = await getPool();
-
     const result = { affected: 0, errors: [] };
+
     for (const it of items) {
       const job = String(it?.job ?? '').trim();
       const area = String(it?.area ?? '').trim();
       const piezasBuenas = it?.piezasBuenas != null ? Number(it.piezasBuenas) : null;
-      const piezasMalas = it?.piezasMalas != null ? Number(it.piezasMalas) : null;
-      const motivo = it?.motivo != null ? String(it.motivo).trim() : null;
+      const piezasMalas  = it?.piezasMalas  != null ? Number(it.piezasMalas)  : null;
+      const motivo       = it?.motivo != null ? String(it.motivo).trim() : null;
 
       if (!job || !area) {
         result.errors.push({ job, area, message: 'job/area requeridos' });
         continue;
       }
+
       try {
         const req = pool.request()
           .input('Job',          sql.VarChar(20), job)
@@ -157,8 +200,7 @@ function registerJobProcessIpc() {
     return result;
   });
 
-  
-  console.log('[IPC] handler registrado: jobProcess:scanRegister');
+  console.log('[IPC] JobProcess handlers registrados: scanRegister, list, changeStatus (con control por área de sesión)');
 }
 
 module.exports = { registerJobProcessIpc };

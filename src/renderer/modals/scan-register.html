@@ -8,7 +8,7 @@
   <style>
     body { font-family: system-ui, sans-serif; margin: 16px; }
     .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-    .label { width: 120px; color: #444; }
+    .label { width: 140px; color: #444; }
     .val { font-weight: 600; }
     .error { color: #b00020; }
     .ok { color: #136f14; }
@@ -38,9 +38,18 @@
       <div class="row"><div class="label">Descripción</div><div class="val" id="vDesc"></div></div>
       <div class="row"><div class="label">Order_Qty</div><div class="val" id="vOrderQty"></div></div>
       <div class="row"><div class="label">Status ERP</div><div class="val" id="vStatus"></div></div>
+
       <div class="row">
-        <label class="label" for="qty">Cantidad</label>
-        <input id="qty" type="number" min="1" step="1" value="1" />
+        <div class="label">Buenas (OK)</div>
+        <input id="qtyOk" type="number" min="0" step="1" value="1" />
+      </div>
+      <div class="row">
+        <div class="label">Scrap (NO OK)</div>
+        <input id="qtyScrap" type="number" min="0" step="1" value="0" />
+      </div>
+      <div class="row">
+        <div class="label">Total</div>
+        <div class="val" id="vTotal">1</div>
         <span id="qtyMsg" class="error"></span>
       </div>
     </div>
