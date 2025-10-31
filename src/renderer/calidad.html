@@ -1,14 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data:; style-src 'self'; object-src 'none'; base-uri 'self'">
     <title>Calidad</title>
+    <link rel="stylesheet" href="./styles/deburr.css">
   </head>
   <body>
-    <button id="btnLogout">Cerrar sesión</button>
-    <h1>Módulo Calidad</h1>
-    <div id="me"></div>
+    <div class="page">
+      <header class="page-header">
+        <button id="btnLogout" class="btn btn-secondary">Cerrar sesión</button>
+        <h1>Módulo Calidad</h1>
+        <div id="me" class="user-info"></div>
+      </header>
+
+      <section class="toolbar">
+        <div class="toolbar-left">
+          <button id="btnQualityRefresh" class="btn">Refrescar</button>
+          <button id="btnQualityInspect" class="btn">Registrar inspección</button>
+          <button id="btnQualityComplete" class="btn btn-primary">Completar</button>
+          <span id="qualityMsg" class="muted"></span>
+        </div>
+        <div class="bulk-right">
+          <span id="selCount" class="muted">0 seleccionados</span>
+        </div>
+      </section>
+
+      <section class="table-wrap">
+        <table id="qualityTable">
+          <thead>
+            <tr>
+              <th>Job</th>
+              <th>PartNum</th>
+              <th>Order Qty</th>
+              <th>Enviado Calidad</th>
+              <th>QC Aceptadas</th>
+              <th>QC Scrap</th>
+              <th>QC Pend. Insp.</th>
+              <th>Estatus</th>
+              <th>Fecha Reg.</th>
+            </tr>
+          </thead>
+          <tbody id="qualityTbody">
+            <tr><td class="center" colspan="9">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- Modal para registrar inspección (sin prompt) -->
+    <div id="inspectModal" class="modal-overlay" hidden>
+      <div class="modal-panel" role="dialog" aria-labelledby="inspectTitle" aria-modal="true">
+        <h3 id="inspectTitle">Registrar inspección</h3>
+        <div class="modal-body">
+          <div class="modal-row">
+            <label for="okInput">Buenas (OK)</label>
+            <input id="okInput" type="number" min="0" step="1" inputmode="numeric" />
+          </div>
+          <div class="modal-row">
+            <label for="ngInput">Scrap (NO OK)</label>
+            <input id="ngInput" type="number" min="0" step="1" inputmode="numeric" />
+          </div>
+          <div id="inspectHelp" class="muted"></div>
+          <div id="inspectError" class="error" role="alert"></div>
+        </div>
+        <div class="modal-actions">
+          <button id="inspectCancel" class="btn">Cancelar</button>
+          <button id="inspectOk" class="btn btn-primary">Guardar</button>
+        </div>
+      </div>
+    </div>
 
     <script src="./calidad.js"></script>
   </body>

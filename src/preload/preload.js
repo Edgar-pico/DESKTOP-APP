@@ -5,13 +5,10 @@ contextBridge.exposeInMainWorld('api', {
   chrome: () => process.versions.chrome,
   electron: () => process.versions.electron,
 
-
   ping: () => ipcRenderer.invoke('ping'),
   getMaterials: () => ipcRenderer.invoke('db:getMaterials'),
   vMaterialsList: (opts)       => ipcRenderer.invoke('db:vMaterials:list', opts),
   vMaterialsByPN: (partNumber) => ipcRenderer.invoke('db:vMaterials:byPN', partNumber),
-
-
 
   // también podemos exponer variables, no solo funciones
   navigateToUrl: (url) => ipcRenderer.invoke('navigate-to-url', url),
@@ -24,26 +21,26 @@ contextBridge.exposeInMainWorld('api', {
     register: (data) => ipcRenderer.invoke('auth:register', data), // opcional
   },
 
-
   app: {
     openMain: () => ipcRenderer.invoke('app:open-main'),
     openLogin: () => ipcRenderer.invoke('app:open-login'),
   },
 
-    modal: {
+  modal: {
     openScanRegister: (payload) => ipcRenderer.invoke('modal:scan-register-open', payload),
   },
 
-  // NUEVO: SP desde la vista Deburr (renderer principal)
+  // IPCs del flujo de JobProcess
   jobProcess: {
-    scanRegister: (payload) => ipcRenderer.invoke('jobProcess:scanRegister', payload),
-    list: (payload = null) => ipcRenderer.invoke('jobProcess:list', payload),
-    changeStatus: (payload) => ipcRenderer.invoke('jobProcess:changeStatus', payload), // ← nuevo
+    scanRegister:   (payload) => ipcRenderer.invoke('jobProcess:scanRegister', payload),
+    list:           (payload = null) => ipcRenderer.invoke('jobProcess:list', payload),
+    changeStatus:   (payload) => ipcRenderer.invoke('jobProcess:changeStatus', payload),
+    sendToQuality:  (payload) => ipcRenderer.invoke('jobProcess:sendToQuality', payload),   // NUEVO
+    qualityInspect: (payload) => ipcRenderer.invoke('jobProcess:qualityInspect', payload),  // NUEVO
   },
 
-  // Opcional: también puedes exponer ERP aquí si lo quieres en otras vistas
+  // Opcional: ERP
   erp: {
     getJobInfo: (job) => ipcRenderer.invoke('erp:getJobInfo', job),
   },
-
 })

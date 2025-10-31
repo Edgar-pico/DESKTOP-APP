@@ -1,0 +1,7 @@
+@import './base.css';
+@import './tables.css';
+
+/* Acento para Supply */
+:root{
+  --primary:#22c55e; /* verde para Supply */
+}

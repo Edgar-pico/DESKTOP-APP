@@ -20,14 +20,13 @@
         <button id="btnDeburrRefresh" class="btn">Refrescar</button>
         <span id="deburrMsg" class="muted"></span>
       </div>
-      <!-- Sin filtros en Deburr -->
       <div></div>
     </section>
 
-    <!-- Acciones masivas -->
     <section class="bulk-bar">
       <div class="bulk-left">
         <button id="btnSetInProcess" class="btn">Poner en proceso</button>
+        <button id="btnSendToQuality" class="btn">Enviar a Calidad</button>
       </div>
       <div class="bulk-right">
         <span id="selCount" class="muted">0 seleccionados</span>
@@ -38,25 +37,47 @@
       <table id="deburrTable">
         <thead>
           <tr>
-            <th>Id</th>
-            <th>Job</th>
-            <th>PartNumber</th>
-            <th>Descripción</th>
-            <th>Order_Qty</th>
-            <th>Área</th>
-            <th>Qty_Real_Ingresada</th>
-            <th>Estatus</th>
-            <th>FechaRegistro</th>
-            <th>FechaActualización</th>
+            <th title="Identificador">Id</th>
+            <th title="Job">Job</th>
+            <th title="Part Number">PartNum</th>
+            <th title="Descripción">Descripción</th>
+            <th title="Orden Cantidad">Order Qty</th>
+            <th title="Área">Área</th>
+            <th title="Piezas buenas">Buenas (pzas)</th>
+            <th title="Scrap (piezas rechazadas)">Scrap (pzas)</th>
+            <th title="Enviado a Calidad">Enviado Calidad</th>
+            <th title="Pendiente por enviar a Calidad">Pendiente por enviar</th>
+            <th title="Estatus">Estatus</th>
+            <th title="Fecha de registro">Fecha Reg.</th>
+            <th title="Fecha de actualización">Fecha Act.</th>
           </tr>
         </thead>
         <tbody id="deburrTbody">
-          <tr><td class="center" colspan="10">Cargando...</td></tr>
+          <tr><td class="center" colspan="13">Cargando...</td></tr>
         </tbody>
       </table>
     </section>
   </div>
 
+  <div id="qtyModal" class="modal-overlay" hidden>
+    <div class="modal-panel" role="dialog" aria-labelledby="qtyTitle" aria-modal="true">
+      <h3 id="qtyTitle">Enviar a Calidad</h3>
+      <div class="modal-body">
+        <div class="modal-row">
+          <label for="qtyInput">Cantidad a enviar</label>
+          <input id="qtyInput" type="number" min="1" step="1" inputmode="numeric" />
+        </div>
+        <div id="qtyHelp" class="muted"></div>
+        <div id="qtyError" class="error" role="alert"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="qtyCancel" class="btn">Cancelar</button>
+        <button id="qtyOk" class="btn btn-primary">Enviar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="./deburr.js"></script>
 </body>
+
 </html>

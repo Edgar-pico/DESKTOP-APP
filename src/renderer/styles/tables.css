@@ -1,0 +1,43 @@
+/* Reglas comunes de tablas (centrado, scroll, sticky header, tooltips) */
+.table-wrap{
+  overflow: auto;         /* Scroll H y V */
+  max-height: 68vh;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.table-wrap table{
+  width: max-content;     /* crece con el contenido horizontal */
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-wrap thead th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #15181c;
+  color: #d6d8db;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-wrap th,
+.table-wrap td{
+  white-space: nowrap;     /* evita saltos de línea por defecto */
+  text-align: center;
+  vertical-align: middle;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Alternado sutil */
+.table-wrap tbody tr:nth-child(odd) td{
+  background: rgba(255,255,255,0.015);
+}
+
+/* Columnas que sí pueden envolver (p.ej. Descripción) */
+.wrap{ white-space: normal; max-width: 320px; }
+.cell-date{ text-align: center; }

@@ -1,0 +1,7 @@
+@import './base.css';
+@import './tables.css';
+
+/* Acento para Calidad */
+:root{
+  --primary:#a855f7; /* morado para Quality */
+}

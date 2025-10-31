@@ -5,10 +5,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       me?.user ? `Usuario: ${me.user.Nombre || me.user.UserName} | Área: ${me.user.Area || '-'}` : 'Sin sesión';
   } catch {}
 
- document.getElementById('btnLogout')?.addEventListener('click', async () => {
-  await window.api.auth.logout();
-  await window.api.app.openLogin();
-});
+  document.getElementById('btnLogout')?.addEventListener('click', async () => {
+    await window.api.auth.logout();
+    await window.api.app.openLogin();
+  });
 
   document.getElementById('btnRefresh')?.addEventListener('click', loadList);
   document.getElementById('selStatus')?.addEventListener('change', quickLoad);
@@ -52,11 +52,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tbody = document.getElementById('supplyTbody');
     tbody.innerHTML = '';
     if (!rows || rows.length === 0) {
-      tbody.innerHTML = `<tr><td class="center" colspan="10">Sin registros</td></tr>`;
+      tbody.innerHTML = `<tr><td class="center" colspan="15">Sin registros</td></tr>`;
       return;
     }
     for (const r of rows) {
       const tr = document.createElement('tr');
+
+      // Buenas/Scrap visibles por área
+      const buenas = r.Area === 'Deburr'
+        ? (r.PiezasBuenas ?? 0)
+        : ((r.QC_Aceptadas ?? r.PiezasBuenas ?? 0));
+      const scrapQa = r.Area === 'Deburr'
+        ? (r.PiezasMalas ?? 0)
+        : ((r.QC_Scrap ?? r.PiezasMalas ?? 0));
+
+      // Scrap Deburr (estado estable: usamos PiezasMalas si el renglón es de Deburr; en otras áreas 0)
+      const scrapDeburr = r.Area === 'Deburr' ? (r.PiezasMalas ?? 0) : 0;
+
+      // Pendiente por enviar: solo el campo clásico (visible en Deburr)
+      const penEnviar = r.PendientePorEnviar ?? 0;
 
       const tdStatus = document.createElement('td');
       const badge = document.createElement('span');
@@ -65,12 +79,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       tdStatus.appendChild(badge);
 
       const cells = [
-        r.Id, r.Job, r.PartNumber, r.Descripcion, r.Order_Qty, r.Area, r.Qty_Real_Ingresada,
-        tdStatus, fmtDate(r.FechaRegistro), fmtDate(r.FechaActualizacion),
+        r.Id,
+        r.Job,
+        r.PartNumber,
+        r.Descripcion,
+        r.Order_Qty,
+        r.Area,
+        buenas,
+        scrapQa,
+        scrapDeburr,
+        r.EnviadoCalidad ?? 0,
+        penEnviar,
+        r.QC_PendienteInspeccion ?? 0,
+        tdStatus,
+        fmtDate(r.FechaRegistro),
+        fmtDate(r.FechaActualizacion),
       ];
+
       for (const c of cells) {
         const td = document.createElement('td');
-        if (c instanceof HTMLElement) td.appendChild(c); else td.textContent = c ?? '';
+        if (c instanceof HTMLElement) {
+          td.appendChild(c);
+        } else {
+          const text = c ?? '';
+          td.textContent = text;
+          td.title = String(text); // tooltip
+        }
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
