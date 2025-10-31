@@ -66,8 +66,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? (r.PiezasMalas ?? 0)
         : ((r.QC_Scrap ?? r.PiezasMalas ?? 0));
 
-      // Scrap Deburr (estado estable: usamos PiezasMalas si el renglón es de Deburr; en otras áreas 0)
-      const scrapDeburr = r.Area === 'Deburr' ? (r.PiezasMalas ?? 0) : 0;
+      // Scrap Deburr: preferimos el valor inicial declarado en Deburr; fallback a PiezasMalas si es fila Deburr
+      const scrapDeburr = (r.Deburr_ScrapInicial != null)
+        ? r.Deburr_ScrapInicial
+        : (r.Area === 'Deburr' ? (r.PiezasMalas ?? 0) : 0);
 
       // Pendiente por enviar: solo el campo clásico (visible en Deburr)
       const penEnviar = r.PendientePorEnviar ?? 0;

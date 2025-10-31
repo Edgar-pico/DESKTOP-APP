@@ -111,11 +111,12 @@ function registerJobProcessIpc() {
 
     const where = clauses.length ? ` WHERE ${clauses.join(' AND ')}` : '';
 
-    // SELECT estable: solo columnas que existen hoy en la vista
+    // SELECT estable incluyendo Scrap Deburr inicial
     const selectCols = `
       Id, Job, PartNumber, Descripcion, Order_Qty, Area,
       PiezasBuenas, PiezasMalas, EnviadoCalidad, PendientePorEnviar,
       QC_Aceptadas, QC_Scrap, QC_PendienteInspeccion, Deburr_ScrapDetectadoCalidad,
+      Deburr_ScrapInicial,
       Estatus, FechaRegistro, FechaActualizacion
     `;
 
