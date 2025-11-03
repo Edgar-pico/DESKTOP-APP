@@ -306,3 +306,100 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Primera carga
   await loadDeburrList();
 });
+
+async function loadDeburrList() {
+  try {
+    const { statusList: filtersStatus, areaList } = getFilters();
+
+    // Normalizar filtros y asegurarnos que si estamos mostrando Deburr,
+    // incluimos el estatus 'Retrabajo' para que aparezcan las filas rework.
+    const statusList = Array.isArray(filtersStatus) ? [...filtersStatus] : [];
+    const areas = Array.isArray(areaList) ? [...areaList] : [];
+
+    // Si el filtro de áreas incluye 'Deburr' (o no se filtró por área),
+    // aseguramos que el status 'Retrabajo' esté presente para Deburr.
+    if (areas.length === 0 || areas.includes('Deburr')) {
+      if (!statusList.includes('Retrabajo')) statusList.push('Retrabajo');
+    }
+
+    const rows = await window.api.jobProcess.list({ statusList, areaList: areas });
+    renderRows(rows);
+  } catch (e) {
+    console.error('Error cargando Deburr:', e);
+    setMsg(`No se pudieron cargar los registros: ${prettyError(e)}`);
+    renderRows([]);
+  }
+}
+
+// Renderizar filas (asegúrate de adaptar si tu archivo tiene otra estructura)
+function renderRows(rows) {
+  const tbody = document.getElementById('deburrTbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  lastRowsMap.clear();
+  selected.clear();
+
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = `<tr><td class="center" colspan="11">Sin registros</td></tr>`;
+    setSelCount(selected);
+    return;
+  }
+
+  for (const r of rows) {
+    lastRowsMap.set(r.Id, r);
+    const tr = document.createElement('tr');
+    tr.classList.add('row-clickable');
+    tr.addEventListener('click', () => {
+      if (selected.has(r.Id)) { selected.delete(r.Id); tr.classList.remove('row-selected'); }
+      else { selected.add(r.Id); tr.classList.add('row-selected'); }
+      setSelCount(selected);
+    });
+
+    // Celdas principales
+    const cells = [
+      r.Job,
+      r.PartNumber,
+      r.Order_Qty ?? 0,
+      r.Area ?? '',
+      r.PiezasBuenas ?? 0,
+      r.PiezasMalas ?? 0,
+      r.EnviadoCalidad ?? 0,
+      r.PendientePorEnviar ?? 0,
+    ];
+    for (const v of cells) {
+      const td = document.createElement('td');
+      td.textContent = v ?? '';
+      tr.appendChild(td);
+    }
+
+    // Estatus: mostrar como badge con clase según valor
+    const tdStatus = document.createElement('td');
+    const span = document.createElement('span');
+    span.textContent = r.Estatus || '';
+    span.classList.add('status-badge');
+
+    // Añadir clase por estatus (incluye 'Retrabajo')
+    const st = String(r.Estatus || '').trim();
+    if (st === 'Almacenado') span.classList.add('status-stored');
+    else if (st === 'En proceso') span.classList.add('status-running');
+    else if (st === 'Completado') span.classList.add('status-done');
+    else if (st === 'Detenido') span.classList.add('status-stopped');
+    else if (st === 'Retrabajo') span.classList.add('status-rework'); // <-- nuevo estatus visual
+    else span.classList.add('status-default');
+
+    tdStatus.appendChild(span);
+    tr.appendChild(tdStatus);
+
+    // Fecha Registro / Fecha Actualización
+    const tdDate = document.createElement('td');
+    tdDate.textContent = fmtDate(r.FechaRegistro);
+    tr.appendChild(tdDate);
+    const tdUpd = document.createElement('td');
+    tdUpd.textContent = fmtDate(r.FechaActualizacion);
+    tr.appendChild(tdUpd);
+
+    tbody.appendChild(tr);
+  }
+
+  setSelCount(selected);
+}

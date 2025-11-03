@@ -5,3 +5,26 @@
 :root{
   --primary:#0ea5e9; /* cian para Deburr */
 }
+
+/* Badge genérico */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+/* Colores existentes (ajusta si ya tienes) */
+.status-stored { background: #2ecc71; }     /* verde */
+.status-running { background: #3498db; }    /* azul */
+.status-done { background: #6c5ce7; }       /* morado */
+.status-stopped { background: #e74c3c; }    /* rojo */
+.status-default { background: #7f8c8d; }    /* gris */
+
+/* Nuevo: Retrabajo */
+.status-rework {
+  background: #f39c12;  /* naranja */
+  color: #111;
+}
