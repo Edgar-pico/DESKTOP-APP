@@ -182,37 +182,37 @@ function registerJobProcessIpc() {
   // --- Añadir este handler cerca de los otros jobProcess: handlers (por ejemplo después de 'jobProcess:qualityInspect') ---
 
   // Enviar Retrabajo: Quality -> Deburr
-  ipcMain.handle('jobProcess:sendToRework', async (_event, payload) => {
-    mustAuth();
-    const areaSess = sessArea();
-    if (areaSess !== 'Quality') throw new Error('Solo Quality puede enviar a Retrabajo.');
+ipcMain.handle('jobProcess:sendToRework', async (_event, payload) => {
+  mustAuth();
+  const areaSess = sessArea();
+  if (areaSess !== 'Quality') throw new Error('Solo Quality puede enviar a Retrabajo.');
 
-    const job = String(payload?.job ?? '').trim();
-    const qty = Number.parseInt(payload?.qty ?? 0, 10);
-    const usuarioId = String(payload?.usuarioId ?? '').trim();
-    const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
+  const job = String(payload?.job ?? '').trim();
+  const qty = Number.parseInt(payload?.qty ?? 0, 10);
+  const usuarioId = String(payload?.usuarioId ?? '').trim();
+  const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
 
-    if (!job) throw new Error('job requerido');
-    if (!Number.isInteger(qty) || qty < 1) throw new Error('Cantidad inválida');
-    if (!usuarioId) throw new Error('usuarioId requerido');
+  if (!job) throw new Error('job requerido');
+  if (!Number.isInteger(qty) || qty < 1) throw new Error('Cantidad inválida');
+  if (!usuarioId) throw new Error('usuarioId requerido');
 
-    try {
-      const pool = await getPool();
-      const r = await pool.request()
-        .input('Job',         sql.VarChar(20), job)
-        .input('FromArea',    sql.VarChar(20), 'Quality')     // fijo: Quality es el origen
-        .input('QtyToRework', sql.Int, qty)
-        .input('UsuarioId',   sql.VarChar(10), usuarioId)
-        .input('Motivo',      sql.NVarChar(200), motivo)
-        .execute('dbo.JobProcess_SendToRework');
+  try {
+    const pool = await getPool();
+    const r = await pool.request()
+      .input('Job',         sql.VarChar(20), job)
+      .input('FromArea',    sql.VarChar(20), 'Quality')     // fijo: Quality es el origen
+      .input('QtyToRework', sql.Int, qty)
+      .input('UsuarioId',   sql.VarChar(10), usuarioId)
+      .input('Motivo',      sql.NVarChar(200), motivo)
+      .execute('dbo.JobProcess_SendToRework');
 
-      // El SP devuelve normalmente 2 resultsets (fila Deburr creada y estado/saldo de Quality).
-      // Devuelvo recordsets para que el renderer pueda inspeccionar ambas filas si lo requiere.
-      return r?.recordsets ?? r?.recordset ?? null;
-    } catch (err) {
-      throw new Error(err?.message || String(err));
-    }
-  });
+    // El SP devuelve normalmente 2 resultsets (fila Deburr creada y estado/saldo de Quality).
+    // Devuelvo recordsets para que el renderer pueda inspeccionar ambas filas si lo requiere.
+    return r?.recordsets ?? r?.recordset ?? null;
+  } catch (err) {
+    throw new Error(err?.message || String(err));
+  }
+});
 
 
 

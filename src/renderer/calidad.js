@@ -180,6 +180,101 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Modal para Retrabajo (sin prompts del navegador)
+  function openReworkModal({ job, max, defValue }) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('reworkModal');
+      const input = document.getElementById('reworkQtyInput');
+      const help = document.getElementById('reworkQtyHelp');
+      const err = document.getElementById('reworkError');
+      const motivo = document.getElementById('reworkMotivoInput');
+      const btnOk = document.getElementById('reworkOk');
+      const btnCancel = document.getElementById('reworkCancel');
+      const titleEl = document.getElementById('reworkTitle');
+
+      if (!overlay || !input || !btnOk || !btnCancel || !help || !err || !titleEl || !motivo) { resolve(null); return; }
+
+      titleEl.textContent = `Enviar a Retrabajo - Job ${job}`;
+      input.value = String(defValue ?? max ?? 1);
+      input.min = '1';
+      if (Number.isFinite(max)) input.max = String(max);
+      help.textContent = `Disponible: ${max ?? '-' } pzas`;
+      err.textContent = '';
+      motivo.value = '';
+
+      function cleanup(result) {
+        overlay.hidden = true;
+        overlay.setAttribute('aria-hidden', 'true');
+        btnOk.removeEventListener('click', onOk);
+        btnCancel.removeEventListener('click', onCancel);
+        input.removeEventListener('keydown', onKey);
+        motivo.removeEventListener('keydown', onKey);
+        document.removeEventListener('keydown', onEsc);
+        resolve(result);
+      }
+      function onOk() {
+        const v = Number.parseInt(input.value ?? 0, 10);
+        const m = String(motivo.value ?? '').trim();
+        err.textContent = '';
+        if (!Number.isInteger(v) || v < 1) { err.textContent = 'Cantidad inválida'; return; }
+        if (Number.isFinite(max) && v > max) { err.textContent = `Máximo: ${max}`; return; }
+        cleanup({ qty: v, motivo: m });
+      }
+      function onCancel() { cleanup(null); }
+      function onKey(e) { if (e.key === 'Enter') { e.preventDefault(); onOk(); } }
+      function onEsc(e) { if (e.key === 'Escape') { e.preventDefault(); onCancel(); } }
+
+      btnOk.addEventListener('click', onOk);
+      btnCancel.addEventListener('click', onCancel);
+      input.addEventListener('keydown', onKey);
+      motivo.addEventListener('keydown', onKey);
+      document.addEventListener('keydown', onEsc);
+
+      overlay.hidden = false;
+      overlay.removeAttribute('aria-hidden');
+      setTimeout(() => { input.focus(); input.select?.(); }, 0);
+    });
+  }
+
+  async function onRework() {
+    if (selected.size !== 1) { setMsg('Selecciona 1 registro para enviar a Retrabajo.'); return; }
+    const id = Array.from(selected)[0];
+    const row = lastRowsMap.get(id);
+    if (!row) { setMsg('No se encontró el registro.'); return; }
+
+    // Determinar scrap disponible.
+    // El VIEW en backend expone QC_Scrap (total scrap) y en el SP se valida contra scrap ya retrabajado.
+    const scrapTotal = Number(row.QC_Scrap ?? 0);
+    if (scrapTotal <= 0) { setMsg('No hay piezas Scrap disponibles para retrabajo.'); return; }
+
+    try {
+      const modalRes = await openReworkModal({
+        job: row.Job,
+        max: scrapTotal,
+        defValue: scrapTotal,
+      });
+      if (!modalRes) return;
+
+      const qty = modalRes.qty;
+      const motivo = modalRes.motivo;
+
+      const me = await window.api.auth.me();
+      const usuarioId = me?.user?.UsuarioId || me?.user?.UserName || 'system';
+
+      await window.api.jobProcess.sendToRework({
+        job: row.Job,
+        qty,
+        usuarioId,
+        motivo
+      });
+
+      setMsg(`Enviado ${qty} pzas del Job ${row.Job} a Retrabajo.`);
+      await loadList();
+    } catch (e) {
+      setMsg(prettyError(e));
+    }
+  }
+
   async function onComplete() {
     if (selected.size === 0) { setMsg('Selecciona al menos un registro.'); return; }
 
@@ -210,6 +305,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btnQualityRefresh')?.addEventListener('click', loadList);
   document.getElementById('btnQualityInspect')?.addEventListener('click', onInspect);
   document.getElementById('btnQualityComplete')?.addEventListener('click', onComplete);
+
+  // Registrar botón Retrabajo (si existe)
+  document.getElementById('btnRework')?.addEventListener('click', onRework);
 
   // Primera carga
   await loadList();
