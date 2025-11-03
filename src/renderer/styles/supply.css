@@ -5,3 +5,9 @@
 :root{
   --primary:#22c55e; /* verde para Supply */
 }
+
+/* Añadir estilo para Retrabajo (badge naranja similar a Deburr) */
+.status-rework {
+  background: #f39c12; /* naranja */
+  color: #111;
+}
