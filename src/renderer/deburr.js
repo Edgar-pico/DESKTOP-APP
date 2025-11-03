@@ -1,3 +1,7 @@
+// Consolidated and cleaned deburr renderer: shows Retrabajo (rework) rows reliably.
+// - getFilters() includes 'Retrabajo' by default for Deburr
+// - badge rendering prioritizes IsRework true
+// - single, clear set of functions (no duplicates)
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     const me = await window.api.auth.me();
@@ -26,8 +30,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const el = document.getElementById('deburrMsg');
     if (el) el.textContent = t || '';
   }
+  // getFilters: ahora incluye 'Retrabajo' por defecto para Deburr
   function getFilters() {
-    return { statusList: ['Almacenado', 'En proceso'], areaList: ['Deburr'], areaSelected: 'Deburr' };
+    return { statusList: ['Almacenado', 'En proceso', 'Retrabajo'], areaList: ['Deburr'], areaSelected: 'Deburr' };
   }
   function fmtDateCompact(val) {
     if (val == null) return '';
@@ -51,6 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (key === 'en proceso') return 'status-en-proceso';
     if (key === 'detenido') return 'status-detenido';
     if (key === 'completado') return 'status-completado';
+    if (key === 'retrabajo') return 'status-rework';
     return '';
   }
   function updateSelCount() {
@@ -73,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Funciones de UI/flujo
+  // Modal open/register
   async function onOpenRegister() {
     if (btnOpenRegister) btnOpenRegister.disabled = true;
     try {
@@ -190,10 +196,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       lastRowsMap.set(r.Id, r);
       const tr = document.createElement('tr');
 
+      // Badge: priorizar IsRework
       const tdEstatus = document.createElement('td');
       const badge = document.createElement('span');
-      badge.className = `badge ${statusClass(r.Estatus)}`;
-      badge.textContent = r.Estatus ?? '';
+      const isRework = !!r.IsRework;
+      const estText = isRework ? 'Retrabajo' : (r.Estatus ?? '');
+      const cls = isRework ? 'status-rework' : statusClass(estText);
+      badge.className = `badge ${cls}`;
+      badge.textContent = estText;
       tdEstatus.appendChild(badge);
 
       const tdFechaReg = makeDateCell(r.FechaRegistro);
@@ -231,7 +241,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
 
-      if (selected.has(r.Id)) tr.classList.add('row-selected');
       attachRowSelect(tr, r.Id);
 
       if (highlightId && r.Id === highlightId && !scrolled) {
@@ -252,7 +261,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadDeburrList() {
     try {
       const { statusList, areaList } = getFilters();
+
+      // Debug logging (abre DevTools para verlo)
+      console.info('[Deburr] requesting list statusList=%o areaList=%o', statusList, areaList);
+
       const rows = await window.api.jobProcess.list({ statusList, areaList });
+      console.info('[Deburr] rows returned:', (rows || []).length);
+
       renderRows(rows);
     } catch (e) {
       console.error('Error cargando Deburr:', e);
@@ -285,7 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Cableado de eventos después de definir funciones (evita ReferenceError)
+  // Cableado de eventos
   document.getElementById('btnLogout')?.addEventListener('click', async () => {
     await window.api.auth.logout();
     await window.api.app.openLogin();
@@ -306,100 +321,3 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Primera carga
   await loadDeburrList();
 });
-
-async function loadDeburrList() {
-  try {
-    const { statusList: filtersStatus, areaList } = getFilters();
-
-    // Normalizar filtros y asegurarnos que si estamos mostrando Deburr,
-    // incluimos el estatus 'Retrabajo' para que aparezcan las filas rework.
-    const statusList = Array.isArray(filtersStatus) ? [...filtersStatus] : [];
-    const areas = Array.isArray(areaList) ? [...areaList] : [];
-
-    // Si el filtro de áreas incluye 'Deburr' (o no se filtró por área),
-    // aseguramos que el status 'Retrabajo' esté presente para Deburr.
-    if (areas.length === 0 || areas.includes('Deburr')) {
-      if (!statusList.includes('Retrabajo')) statusList.push('Retrabajo');
-    }
-
-    const rows = await window.api.jobProcess.list({ statusList, areaList: areas });
-    renderRows(rows);
-  } catch (e) {
-    console.error('Error cargando Deburr:', e);
-    setMsg(`No se pudieron cargar los registros: ${prettyError(e)}`);
-    renderRows([]);
-  }
-}
-
-// Renderizar filas (asegúrate de adaptar si tu archivo tiene otra estructura)
-function renderRows(rows) {
-  const tbody = document.getElementById('deburrTbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  lastRowsMap.clear();
-  selected.clear();
-
-  if (!rows || rows.length === 0) {
-    tbody.innerHTML = `<tr><td class="center" colspan="11">Sin registros</td></tr>`;
-    setSelCount(selected);
-    return;
-  }
-
-  for (const r of rows) {
-    lastRowsMap.set(r.Id, r);
-    const tr = document.createElement('tr');
-    tr.classList.add('row-clickable');
-    tr.addEventListener('click', () => {
-      if (selected.has(r.Id)) { selected.delete(r.Id); tr.classList.remove('row-selected'); }
-      else { selected.add(r.Id); tr.classList.add('row-selected'); }
-      setSelCount(selected);
-    });
-
-    // Celdas principales
-    const cells = [
-      r.Job,
-      r.PartNumber,
-      r.Order_Qty ?? 0,
-      r.Area ?? '',
-      r.PiezasBuenas ?? 0,
-      r.PiezasMalas ?? 0,
-      r.EnviadoCalidad ?? 0,
-      r.PendientePorEnviar ?? 0,
-    ];
-    for (const v of cells) {
-      const td = document.createElement('td');
-      td.textContent = v ?? '';
-      tr.appendChild(td);
-    }
-
-    // Estatus: mostrar como badge con clase según valor
-    const tdStatus = document.createElement('td');
-    const span = document.createElement('span');
-    span.textContent = r.Estatus || '';
-    span.classList.add('status-badge');
-
-    // Añadir clase por estatus (incluye 'Retrabajo')
-    const st = String(r.Estatus || '').trim();
-    if (st === 'Almacenado') span.classList.add('status-stored');
-    else if (st === 'En proceso') span.classList.add('status-running');
-    else if (st === 'Completado') span.classList.add('status-done');
-    else if (st === 'Detenido') span.classList.add('status-stopped');
-    else if (st === 'Retrabajo') span.classList.add('status-rework'); // <-- nuevo estatus visual
-    else span.classList.add('status-default');
-
-    tdStatus.appendChild(span);
-    tr.appendChild(tdStatus);
-
-    // Fecha Registro / Fecha Actualización
-    const tdDate = document.createElement('td');
-    tdDate.textContent = fmtDate(r.FechaRegistro);
-    tr.appendChild(tdDate);
-    const tdUpd = document.createElement('td');
-    tdUpd.textContent = fmtDate(r.FechaActualizacion);
-    tr.appendChild(tdUpd);
-
-    tbody.appendChild(tr);
-  }
-
-  setSelCount(selected);
-}

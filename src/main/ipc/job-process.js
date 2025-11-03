@@ -91,9 +91,14 @@ function registerJobProcessIpc() {
       areaList   = normalizeArray(payload.areaList);
     }
 
-    // Forzar área por sesión
-    if (areaSess === 'Deburr') areaList = ['Deburr'];
-    else if (areaSess === 'Quality') areaList = ['Quality'];
+    // Forzar área por sesión y defender inclusión de 'Retrabajo' en Deburr
+    if (areaSess === 'Deburr') {
+      areaList = ['Deburr'];
+      // defensa: si el renderer no pidió explícitamente 'Retrabajo', lo incluimos
+      if (!statusList.includes('Retrabajo')) statusList.push('Retrabajo');
+    } else if (areaSess === 'Quality') {
+      areaList = ['Quality'];
+    }
 
     const clauses = [];
     const params = [];
@@ -117,7 +122,7 @@ function registerJobProcessIpc() {
       PiezasBuenas, PiezasMalas, EnviadoCalidad, PendientePorEnviar,
       QC_Aceptadas, QC_Scrap, QC_PendienteInspeccion, Deburr_ScrapDetectadoCalidad,
       Deburr_ScrapInicial,
-      Estatus, FechaRegistro, FechaActualizacion
+      Estatus, FechaRegistro, FechaActualizacion, IsRework
     `;
 
     const query = `SELECT ${selectCols} FROM ${VIEW_NAME}${where} ORDER BY ${SAFE_ORDER_BY}`;
@@ -150,87 +155,81 @@ function registerJobProcessIpc() {
   });
 
   // Reemplaza / actualiza el handler existente 'jobProcess:qualityInspect' por este bloque:
+  ipcMain.handle('jobProcess:qualityInspect', async (_event, payload) => {
+    mustAuth();
+    const areaSess = sessArea();
+    if (areaSess !== 'Quality') throw new Error('Solo Quality puede registrar inspección.');
 
-ipcMain.handle('jobProcess:qualityInspect', async (_event, payload) => {
-  mustAuth();
-  const areaSess = sessArea();
-  if (areaSess !== 'Quality') throw new Error('Solo Quality puede registrar inspección.');
+    const job = String(payload?.job ?? '').trim();
+    const buenas = Number.parseInt(payload?.buenas ?? 0, 10);
+    const malas  = Number.parseInt(payload?.malas  ?? 0, 10);
+    const usuarioId = String(payload?.usuarioId ?? '').trim();
+    const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
 
-  const job = String(payload?.job ?? '').trim();
-  const buenas = Number.parseInt(payload?.buenas ?? 0, 10);
-  const malas  = Number.parseInt(payload?.malas  ?? 0, 10);
-  const usuarioId = String(payload?.usuarioId ?? '').trim();
-  const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
+    if (!job) throw new Error('job requerido');
+    if (!Number.isInteger(buenas) || buenas < 0) throw new Error('Buenas inválidas');
+    if (!Number.isInteger(malas)  || malas  < 0) throw new Error('Malas inválidas');
+    if (!usuarioId) throw new Error('usuarioId requerido');
 
-  if (!job) throw new Error('job requerido');
-  if (!Number.isInteger(buenas) || buenas < 0) throw new Error('Buenas inválidas');
-  if (!Number.isInteger(malas)  || malas  < 0) throw new Error('Malas inválidas');
-  if (!usuarioId) throw new Error('usuarioId requerido');
+    const pool = await getPool();
+    try {
+      // Ejecuta el SP que ahora también actualiza JobProcess (calidad)
+      const r = await pool.request()
+        .input('Job',       sql.VarChar(20), job)
+        .input('BuenasOk',  sql.Int, buenas)
+        .input('MalasScrap',sql.Int, malas)
+        .input('UsuarioId', sql.VarChar(10), usuarioId)
+        .input('Motivo',    sql.NVarChar(200), motivo)
+        .execute('dbo.JobProcess_QualityInspect');
 
-  const pool = await getPool();
-  try {
-    // Ejecuta el SP que ahora también actualiza JobProcess (calidad)
-    const r = await pool.request()
-      .input('Job',       sql.VarChar(20), job)
-      .input('BuenasOk',  sql.Int, buenas)
-      .input('MalasScrap',sql.Int, malas)
-      .input('UsuarioId', sql.VarChar(10), usuarioId)
-      .input('Motivo',    sql.NVarChar(200), motivo)
-      .execute('dbo.JobProcess_QualityInspect');
+      const summary = r?.recordset?.[0] || null;
 
-    const summary = r?.recordset?.[0] || null;
+      // Recuperar fila activa en JobProcess para Quality (ahora actualizada)
+      const rows = await pool.request()
+        .query(`SELECT TOP 1 * FROM dbo.JobProcess WHERE Job = @job AND Area='Quality' AND IsActive=1`,
+          [{ name: 'job', type: sql.VarChar, value: job }]); // not using execute here to keep example simple
 
-    // Recuperar fila activa en JobProcess para Quality (ahora actualizada)
-    const rows = await pool.request()
-      .query(`SELECT TOP 1 * FROM dbo.JobProcess WHERE Job = @job AND Area='Quality' AND IsActive=1`,
-        [{ name: 'job', type: sql.VarChar, value: job }]); // not using execute here to keep example simple
+      // NOTE: some drivers accept parameterized .query differently; you can instead run execute('dbo.JobProcess_Get')
+      // but here we return useful data for renderer:
+      return { summary, jobProcess: rows?.recordset?.[0] || null };
+    } catch (err) {
+      throw new Error(err?.message || String(err));
+    }
+  });
 
-    // NOTE: some drivers accept parameterized .query differently; you can instead run execute('dbo.JobProcess_Get')
-    // but here we return useful data for renderer:
-    return { summary, jobProcess: rows?.recordset?.[0] || null };
-  } catch (err) {
-    throw new Error(err?.message || String(err));
-  }
-});
-
-
-  // --- Añadir este handler cerca de los otros jobProcess: handlers (por ejemplo después de 'jobProcess:qualityInspect') ---
 
   // Enviar Retrabajo: Quality -> Deburr
-ipcMain.handle('jobProcess:sendToRework', async (_event, payload) => {
-  mustAuth();
-  const areaSess = sessArea();
-  if (areaSess !== 'Quality') throw new Error('Solo Quality puede enviar a Retrabajo.');
+  ipcMain.handle('jobProcess:sendToRework', async (_event, payload) => {
+    mustAuth();
+    const areaSess = sessArea();
+    if (areaSess !== 'Quality') throw new Error('Solo Quality puede enviar a Retrabajo.');
 
-  const job = String(payload?.job ?? '').trim();
-  const qty = Number.parseInt(payload?.qty ?? 0, 10);
-  const usuarioId = String(payload?.usuarioId ?? '').trim();
-  const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
+    const job = String(payload?.job ?? '').trim();
+    const qty = Number.parseInt(payload?.qty ?? 0, 10);
+    const usuarioId = String(payload?.usuarioId ?? '').trim();
+    const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
 
-  if (!job) throw new Error('job requerido');
-  if (!Number.isInteger(qty) || qty < 1) throw new Error('Cantidad inválida');
-  if (!usuarioId) throw new Error('usuarioId requerido');
+    if (!job) throw new Error('job requerido');
+    if (!Number.isInteger(qty) || qty < 1) throw new Error('Cantidad inválida');
+    if (!usuarioId) throw new Error('usuarioId requerido');
 
-  try {
-    const pool = await getPool();
-    const r = await pool.request()
-      .input('Job',         sql.VarChar(20), job)
-      .input('FromArea',    sql.VarChar(20), 'Quality')     // fijo: Quality es el origen
-      .input('QtyToRework', sql.Int, qty)
-      .input('UsuarioId',   sql.VarChar(10), usuarioId)
-      .input('Motivo',      sql.NVarChar(200), motivo)
-      .execute('dbo.JobProcess_SendToRework');
+    try {
+      const pool = await getPool();
+      const r = await pool.request()
+        .input('Job',         sql.VarChar(20), job)
+        .input('FromArea',    sql.VarChar(20), 'Quality')     // fijo: Quality es el origen
+        .input('QtyToRework', sql.Int, qty)
+        .input('UsuarioId',   sql.VarChar(10), usuarioId)
+        .input('Motivo',      sql.NVarChar(200), motivo)
+        .execute('dbo.JobProcess_SendToRework');
 
-    // El SP devuelve normalmente 2 resultsets (fila Deburr creada y estado/saldo de Quality).
-    // Devuelvo recordsets para que el renderer pueda inspeccionar ambas filas si lo requiere.
-    return r?.recordsets ?? r?.recordset ?? null;
-  } catch (err) {
-    throw new Error(err?.message || String(err));
-  }
-});
-
-
-
+      // El SP devuelve normalmente 2 resultsets (fila Deburr creada y estado/saldo de Quality).
+      // Devuelvo recordsets para que el renderer pueda inspeccionar ambas filas si lo requiere.
+      return r?.recordsets ?? r?.recordset ?? null;
+    } catch (err) {
+      throw new Error(err?.message || String(err));
+    }
+  });
 
   // Cambio de estatus
   ipcMain.handle('jobProcess:changeStatus', async (_event, payload) => {
@@ -319,9 +318,6 @@ ipcMain.handle('jobProcess:sendToRework', async (_event, payload) => {
 
     return result;
   });
-
-
-
 
   console.log('[IPC] JobProcess handlers: scanRegister, list, sendToQuality, qualityInspect, changeStatus');
 }
