@@ -149,24 +149,27 @@ function registerJobProcessIpc() {
     return r?.recordset?.[0] || null;
   });
 
-  // Calidad registra inspección
-  ipcMain.handle('jobProcess:qualityInspect', async (_event, payload) => {
-    mustAuth();
-    const areaSess = sessArea();
-    if (areaSess !== 'Quality') throw new Error('Solo Quality puede registrar inspección.');
+  // Reemplaza / actualiza el handler existente 'jobProcess:qualityInspect' por este bloque:
 
-    const job = String(payload?.job ?? '').trim();
-    const buenas = Number.parseInt(payload?.buenas ?? 0, 10);
-    const malas  = Number.parseInt(payload?.malas  ?? 0, 10);
-    const usuarioId = String(payload?.usuarioId ?? '').trim();
-    const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
+ipcMain.handle('jobProcess:qualityInspect', async (_event, payload) => {
+  mustAuth();
+  const areaSess = sessArea();
+  if (areaSess !== 'Quality') throw new Error('Solo Quality puede registrar inspección.');
 
-    if (!job) throw new Error('job requerido');
-    if (!Number.isInteger(buenas) || buenas < 0) throw new Error('Buenas inválidas');
-    if (!Number.isInteger(malas)  || malas  < 0) throw new Error('Malas inválidas');
-    if (!usuarioId) throw new Error('usuarioId requerido');
+  const job = String(payload?.job ?? '').trim();
+  const buenas = Number.parseInt(payload?.buenas ?? 0, 10);
+  const malas  = Number.parseInt(payload?.malas  ?? 0, 10);
+  const usuarioId = String(payload?.usuarioId ?? '').trim();
+  const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
 
-    const pool = await getPool();
+  if (!job) throw new Error('job requerido');
+  if (!Number.isInteger(buenas) || buenas < 0) throw new Error('Buenas inválidas');
+  if (!Number.isInteger(malas)  || malas  < 0) throw new Error('Malas inválidas');
+  if (!usuarioId) throw new Error('usuarioId requerido');
+
+  const pool = await getPool();
+  try {
+    // Ejecuta el SP que ahora también actualiza JobProcess (calidad)
     const r = await pool.request()
       .input('Job',       sql.VarChar(20), job)
       .input('BuenasOk',  sql.Int, buenas)
@@ -175,8 +178,20 @@ function registerJobProcessIpc() {
       .input('Motivo',    sql.NVarChar(200), motivo)
       .execute('dbo.JobProcess_QualityInspect');
 
-    return r?.recordset?.[0] || null;
-  });
+    const summary = r?.recordset?.[0] || null;
+
+    // Recuperar fila activa en JobProcess para Quality (ahora actualizada)
+    const rows = await pool.request()
+      .query(`SELECT TOP 1 * FROM dbo.JobProcess WHERE Job = @job AND Area='Quality' AND IsActive=1`,
+        [{ name: 'job', type: sql.VarChar, value: job }]); // not using execute here to keep example simple
+
+    // NOTE: some drivers accept parameterized .query differently; you can instead run execute('dbo.JobProcess_Get')
+    // but here we return useful data for renderer:
+    return { summary, jobProcess: rows?.recordset?.[0] || null };
+  } catch (err) {
+    throw new Error(err?.message || String(err));
+  }
+});
 
 
   // --- Añadir este handler cerca de los otros jobProcess: handlers (por ejemplo después de 'jobProcess:qualityInspect') ---
