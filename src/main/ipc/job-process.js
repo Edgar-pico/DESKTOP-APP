@@ -154,49 +154,48 @@ function registerJobProcessIpc() {
     return r?.recordset?.[0] || null;
   });
 
-  // Reemplaza / actualiza el handler existente 'jobProcess:qualityInspect' por este bloque:
-  ipcMain.handle('jobProcess:qualityInspect', async (_event, payload) => {
-    mustAuth();
-    const areaSess = sessArea();
-    if (areaSess !== 'Quality') throw new Error('Solo Quality puede registrar inspección.');
+  // Handler corregido: jobProcess:qualityInspect
+ipcMain.handle('jobProcess:qualityInspect', async (_event, payload) => {
+  mustAuth();
+  const areaSess = sessArea();
+  if (areaSess !== 'Quality') throw new Error('Solo Quality puede registrar inspección.');
 
-    const job = String(payload?.job ?? '').trim();
-    const buenas = Number.parseInt(payload?.buenas ?? 0, 10);
-    const malas  = Number.parseInt(payload?.malas  ?? 0, 10);
-    const usuarioId = String(payload?.usuarioId ?? '').trim();
-    const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
+  const job = String(payload?.job ?? '').trim();
+  const buenas = Number.parseInt(payload?.buenas ?? 0, 10);
+  const malas  = Number.parseInt(payload?.malas  ?? 0, 10);
+  const usuarioId = String(payload?.usuarioId ?? '').trim();
+  const motivo = payload?.motivo != null ? String(payload.motivo).trim() : null;
 
-    if (!job) throw new Error('job requerido');
-    if (!Number.isInteger(buenas) || buenas < 0) throw new Error('Buenas inválidas');
-    if (!Number.isInteger(malas)  || malas  < 0) throw new Error('Malas inválidas');
-    if (!usuarioId) throw new Error('usuarioId requerido');
+  if (!job) throw new Error('job requerido');
+  if (!Number.isInteger(buenas) || buenas < 0) throw new Error('Buenas inválidas');
+  if (!Number.isInteger(malas)  || malas  < 0) throw new Error('Malas inválidas');
+  if (!usuarioId) throw new Error('usuarioId requerido');
 
-    const pool = await getPool();
-    try {
-      // Ejecuta el SP que ahora también actualiza JobProcess (calidad)
-      const r = await pool.request()
-        .input('Job',       sql.VarChar(20), job)
-        .input('BuenasOk',  sql.Int, buenas)
-        .input('MalasScrap',sql.Int, malas)
-        .input('UsuarioId', sql.VarChar(10), usuarioId)
-        .input('Motivo',    sql.NVarChar(200), motivo)
-        .execute('dbo.JobProcess_QualityInspect');
+  const pool = await getPool();
+  try {
+    // Ejecuta el SP que realiza la inspección y actualiza JobProcess
+    const r = await pool.request()
+      .input('Job',       sql.VarChar(20), job)
+      .input('BuenasOk',  sql.Int, buenas)
+      .input('MalasScrap',sql.Int, malas)
+      .input('UsuarioId', sql.VarChar(10), usuarioId)
+      .input('Motivo',    sql.NVarChar(200), motivo)
+      .execute('dbo.JobProcess_QualityInspect');
 
-      const summary = r?.recordset?.[0] || null;
+    const summary = r?.recordset?.[0] || null;
 
-      // Recuperar fila activa en JobProcess para Quality (ahora actualizada)
-      const rows = await pool.request()
-        .query(`SELECT TOP 1 * FROM dbo.JobProcess WHERE Job = @job AND Area='Quality' AND IsActive=1`,
-          [{ name: 'job', type: sql.VarChar, value: job }]); // not using execute here to keep example simple
+    // Recuperar fila activa en JobProcess para Quality (ahora actualizada)
+    // CORRECCIÓN: declarar el parámetro @job con .input() antes de .query()
+    const rows = await pool.request()
+      .input('job', sql.VarChar(20), job)
+      .query(`SELECT TOP 1 * FROM dbo.JobProcess WHERE Job = @job AND Area='Quality' AND IsActive=1`);
 
-      // NOTE: some drivers accept parameterized .query differently; you can instead run execute('dbo.JobProcess_Get')
-      // but here we return useful data for renderer:
-      return { summary, jobProcess: rows?.recordset?.[0] || null };
-    } catch (err) {
-      throw new Error(err?.message || String(err));
-    }
-  });
-
+    return { summary, jobProcess: rows?.recordset?.[0] || null };
+  } catch (err) {
+    // devuelve error amigable al renderer
+    throw new Error(err?.message || String(err));
+  }
+});
 
   // Enviar Retrabajo: Quality -> Deburr
   ipcMain.handle('jobProcess:sendToRework', async (_event, payload) => {
