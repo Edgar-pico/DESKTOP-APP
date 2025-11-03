@@ -71,6 +71,32 @@
       </div>
     </div>
 
+
+        <!-- Modal para Retrabajo (añadir cerca de otros modales de la página) -->
+    <div id="reworkModal" class="modal-overlay" hidden>
+      <div class="modal-panel" role="dialog" aria-labelledby="reworkTitle" aria-modal="true">
+        <h3 id="reworkTitle">Enviar a Retrabajo</h3>
+        <div class="modal-body">
+          <div class="modal-row">
+            <label for="reworkQtyInput">Cantidad a enviar</label>
+            <input id="reworkQtyInput" type="number" min="1" step="1" />
+            <div class="muted" id="reworkQtyHelp">Disponible: -</div>
+          </div>
+          <div class="modal-row">
+            <label for="reworkMotivoInput">Motivo (opcional)</label>
+            <input id="reworkMotivoInput" type="text" maxlength="200" />
+          </div>
+          <div class="modal-row">
+            <div id="reworkError" class="error"></div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="reworkOk" class="btn">Enviar</button>
+          <button id="reworkCancel" class="btn">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
     <script src="./calidad.js"></script>
   </body>
 </html>
