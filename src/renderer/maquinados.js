@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const btnCapture = document.getElementById('btnCapture');
   const btnInProcess = document.getElementById('btnInProcess');
-  const btnSendDeburr = document.getElementById('btnSendDeburr');
   const btnRefresh = document.getElementById('btnRefresh');
   const btnLogout = document.getElementById('btnLogout');
   const meEl = document.getElementById('me');
@@ -61,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Mostrar usuario
+  // Usuario
   try {
     const me = await window.api.auth.me();
     if (me?.user) meEl.textContent = `Usuario: ${me.user.Nombre || me.user.UserName} | Área: ${me.user.Area || '-'}`;
@@ -74,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     catch (e) { setMsg(`Error al cerrar sesión: ${String(e)}`); }
   });
 
-  // Capturar producción (buenas/scrap) con validación de OrderQty
+  // Capturar producción (validaremos Buenas+Scrap contra OrderQty en el modal/preload)
   btnCapture?.addEventListener('click', async () => {
     try {
       if (selected.size !== 1) { setMsg('Selecciona un (1) Job para capturar.'); return; }
@@ -120,38 +119,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (res?.errors?.length) setMsg(`Hecho con errores: ${res.errors.length}`); else setMsg('Actualizado');
       await loadList();
     } catch (e) { setMsg(`Error: ${e?.message || e}`); }
-  });
-
-  // Enviar a Deburr (validación UI básica con OrderQty, validación estricta en SP)
-  btnSendDeburr?.addEventListener('click', async () => {
-    try {
-      if (selected.size !== 1) { setMsg('Selecciona un (1) Job'); return; }
-      const job = Array.from(selected)[0];
-      const row = rowByJob(job);
-      if (!row) { setMsg('No se encontró la fila seleccionada'); return; }
-      const orderQty = Number(row.Order_Qty || 0);
-
-      const resNum = await window.api.modal.openPromptNumber({
-        title: 'Enviar a Deburr',
-        label: 'Cantidad a enviar (buenas):',
-        min: 1,
-        max: orderQty,
-        step: 1
-      });
-      if (!resNum?.confirmed) return;
-      const qty = Number(resNum.value || 0);
-      if (!Number.isInteger(qty) || qty < 1) { setMsg('Cantidad inválida'); return; }
-      if (qty > orderQty) { setMsg(`No puedes enviar más del OrderQty (${orderQty}).`); return; }
-
-      const me = await window.api.auth.me();
-      const usuarioId = me?.user?.UsuarioId || me?.user?.UserName || 'system';
-      setMsg('Enviando...');
-      await window.api.jobProcess.sendToDeburrFromMaquinados({ job, qty, usuarioId });
-      setMsg('Enviado.');
-      await loadList();
-    } catch (e) {
-      setMsg(`Error: ${e?.message || e}`);
-    }
   });
 
   btnRefresh?.addEventListener('click', loadList);

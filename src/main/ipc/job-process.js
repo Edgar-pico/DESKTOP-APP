@@ -443,6 +443,35 @@ function registerJobProcessIpc() {
     }
   });
 
+  // PCA: surtir Job a Maquinados con máquina (sin crear fila PCA)
+  safeHandle('jobProcess:pcaSupplyToMachining', async (_event, payload) => {
+    mustAuth();
+    const areaSess = sessArea();
+    if (areaSess !== 'PCA') throw new Error('Solo PCA puede surtir a Maquinados.');
+
+    const job = String(payload?.job ?? '').trim();
+    const machine = String(payload?.machine ?? '').trim();
+    const usuarioId = String(payload?.usuarioId ?? '').trim();
+
+    if (!job) throw new Error('job requerido');
+    if (!machine) throw new Error('machine requerido');
+    if (!usuarioId) throw new Error('usuarioId requerido');
+
+    try {
+      const pool = await getPool();
+      const r = await pool.request()
+        .input('Job',           sql.VarChar(20), job)
+        .input('TargetMachine', sql.VarChar(50), machine)
+        .input('UsuarioId',     sql.VarChar(10), usuarioId)
+        .execute('dbo.JobProcess_PCA_SupplyToMachining');
+
+      return r?.recordset?.[0] || null;
+    } catch (err) {
+      throw new Error(err?.message || String(err));
+    }
+  });
+
+
   console.log('[IPC] JobProcess handlers: scanRegister, list, sendToQuality, qualityInspect, sendToRework, changeStatus, machiningCapture, sendToDeburrFromMaquinados, assignToMachine');
 }
 

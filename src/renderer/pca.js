@@ -71,3 +71,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadList();
 });
+
+btnSurtir?.addEventListener('click', async () => {
+  msg('');
+  const job = jobInput.value.trim();
+  const machine = machineSelect.value.trim();
+  if (!job) { msg('Job requerido'); return; }
+  if (!machine) { msg('Máquina requerida'); return; }
+  const me = await window.api.auth.me();
+  const usuarioId = me?.user?.UsuarioId || me?.user?.UserName || 'system';
+  try {
+    const row = await window.api.jobProcess.pcaSupplyToMachining({ job, machine, usuarioId });
+    msg(`Surtido a Maquinados (máquina ${machine}).`);
+    await refreshTabla(); // opcional: listar por Area='Maquinados'
+  } catch (e) {
+    msg(`Error: ${e?.message || e}`);
+  }
+});
