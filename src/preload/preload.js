@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('api', {
     sendToQuality:  (payload) => ipcRenderer.invoke('jobProcess:sendToQuality', payload),   // NUEVO
     qualityInspect: (payload) => ipcRenderer.invoke('jobProcess:qualityInspect', payload),  // NUEVO
     sendToRework: (payload) => ipcRenderer.invoke('jobProcess:sendToRework', payload),  // NUEVO
+    assignToMachine: (payload) => ipcRenderer.invoke('jobProcess:assignToMachine', payload),
   },
 
   // Opcional: ERP

@@ -49,10 +49,13 @@ function registerJobProcessIpc() {
     const piezasOk  = payload?.piezasBuenas != null ? Number.parseInt(payload.piezasBuenas, 10) : null;
     const piezasNg  = payload?.piezasMalas  != null ? Number.parseInt(payload.piezasMalas, 10)  : null;
 
+    
     // Forzar área por sesión
-    const area = areaSess === 'Deburr' ? 'Deburr'
-               : areaSess === 'Quality' ? 'Quality'
-               : String(payload?.area ?? '').trim();
+  if (areaSess === 'Deburr') area = 'Deburr';
+    else if (areaSess === 'Quality') area = 'Quality';
+    else if (areaSess === 'PCA') area = 'PCA';
+    else if (areaSess === 'Maquinados') area = 'Maquinados';
+    else area = String(payload?.area ?? '').trim();
 
     if (!job) throw new Error('Parámetro job es requerido');
     if (!area) throw new Error('Parámetro area es requerido');
@@ -317,6 +320,68 @@ ipcMain.handle('jobProcess:qualityInspect', async (_event, payload) => {
 
     return result;
   });
+
+
+  // --- Agregar handlers PCA / Maquinados dentro de registerJobProcessIpc() ---
+
+// 1) PCA: asignar job escaneado a máquina (surtido)
+// Payload: { job, machine, usuarioId, qty (opcional) }
+// Crea una fila JobProcess Area='PCA' con TargetMachine y Qty_Real_Ingresada = qty (o 0)
+ipcMain.handle('jobProcess:assignToMachine', async (_event, payload) => {
+  mustAuth();
+  const areaSess = sessArea();
+  // Allow only PCA users or Supply Chain? Ajusta según regla de negocio
+  // Permitimos si session area es 'PCA' o 'Supply Chain'
+  if (!['PCA','Supply Chain'].includes(areaSess)) {
+    throw new Error('No autorizado: solo PCA o Supply Chain pueden asignar a máquina.');
+  }
+
+  const job = String(payload?.job ?? '').trim();
+  const machine = String(payload?.machine ?? '').trim();
+  const usuarioId = String(payload?.usuarioId ?? '').trim();
+  const qty = Number.parseInt(payload?.qty ?? 0, 10) || 0;
+
+  if (!job) throw new Error('job requerido');
+  if (!machine) throw new Error('machine requerido');
+  if (!usuarioId) throw new Error('usuarioId requerido');
+
+  const pool = await getPool();
+  try {
+    // opcional: consultar ERP si quieres validar job existe (usa existing erp handler)
+    // const erpInfo = await pool.request()... o usar otro IPC
+
+    // Reutilizamos el SP ScanRegister para crear la fila, indicando Area='PCA'
+    const r = await pool.request()
+      .input('Job', sql.VarChar(20), job)
+      .input('Area', sql.VarChar(20), 'PCA')
+      .input('QtyIngresada', sql.Int, qty)
+      .input('UsuarioId', sql.VarChar(10), usuarioId)
+      .input('PiezasBuenas', sql.Int, null)
+      .input('PiezasMalas', sql.Int, null)
+      .execute('dbo.JobProcess_ScanRegister');
+
+    // Actualizar TargetMachine para la fila recien creada
+    const jpRow = r?.recordset?.[0];
+    if (jpRow?.Id) {
+      await pool.request()
+        .input('Id', sql.Int, jpRow.Id)
+        .input('TargetMachine', sql.VarChar(50), machine)
+        .query('UPDATE dbo.JobProcess SET TargetMachine = @TargetMachine WHERE Id = @Id;');
+    }
+
+    return { ok: true, jobProcess: jpRow || null };
+  } catch (err) {
+    throw new Error(err?.message || String(err));
+  }
+});
+
+// 2) Maquinados (Machining) registro: reusar ScanRegister con Area='Maquinados'
+// Frontend llamará window.api.jobProcess.scanRegister({ job, area: 'Maquinados', qty, usuarioId, piezasBuenas, piezasMalas })
+//
+// (No se requiere handler extra: scanRegister ya fuerza area por session for Deburr/Quality;
+//  si quieres permitir Maquinados forzar el area param / session logic:)
+// Si quieres forzar PCA/Maquinados por sesión, ajusta scanRegister's area forcing logic
+
 
   console.log('[IPC] JobProcess handlers: scanRegister, list, sendToQuality, qualityInspect, changeStatus');
 }
