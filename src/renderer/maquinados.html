@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <!-- CSP para evitar el warning de seguridad -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; img-src 'self' data:; style-src 'self'; object-src 'none'; base-uri 'self'">
   <title>Maquinados</title>
@@ -18,7 +17,9 @@
 
     <section class="toolbar">
       <div class="toolbar-left">
-        <button id="btnRegister" class="btn">Registrar Job</button>
+        <button id="btnCapture" class="btn">Capturar producción</button>
+        <button id="btnInProcess" class="btn">Poner en proceso</button>
+        <button id="btnSendDeburr" class="btn btn-primary">Enviar a Deburr</button>
         <button id="btnRefresh" class="btn">Refrescar</button>
         <span id="maquiMsg" class="muted"></span>
       </div>
@@ -27,9 +28,14 @@
     <section class="table-wrap">
       <table id="maquiTable">
         <thead>
-          <tr><th>Id</th><th>Job</th><th>PartNum</th><th>Desc</th><th>OrderQty</th><th>Area</th><th>Buenas</th><th>Scrap</th><th>Estatus</th><th>FechaReg</th></tr>
+          <tr>
+            <th></th>
+            <th>Id</th><th>Job</th><th>PartNum</th><th>Desc</th><th>OrderQty</th>
+            <th>Máquina</th>
+            <th>Area</th><th>Buenas</th><th>Scrap</th><th>Estatus</th><th>FechaReg</th>
+          </tr>
         </thead>
-        <tbody id="maquiTbody"><tr><td class="center" colspan="10">Cargando...</td></tr></tbody>
+        <tbody id="maquiTbody"><tr><td class="center" colspan="12">Cargando...</td></tr></tbody>
       </table>
     </section>
   </div>

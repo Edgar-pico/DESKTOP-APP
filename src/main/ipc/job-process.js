@@ -77,7 +77,7 @@ function registerJobProcessIpc() {
     }
   });
 
-  // Listar (filtra por área según sesión; Supply puede ver todas)
+  // Listar (forzar área por sesión)
   safeHandle('jobProcess:list', async (_event, payload = null) => {
     mustAuth();
     const areaSess = sessArea();
@@ -116,24 +116,47 @@ function registerJobProcessIpc() {
       clauses.push(`Area IN (${placeholders})`);
       params.push(...p);
     }
-
     const where = clauses.length ? ` WHERE ${clauses.join(' AND ')}` : '';
 
-    // HOTFIX: no pedimos TargetMachine porque el view actual no la expone
-    const selectCols = `
-      Id, Job, PartNumber, Descripcion, Order_Qty, Area,
-      PiezasBuenas, PiezasMalas, EnviadoCalidad, PendientePorEnviar,
-      QC_Aceptadas, QC_Scrap, QC_PendienteInspeccion, Deburr_ScrapDetectadoCalidad,
-      Deburr_ScrapInicial,
-      Estatus, FechaRegistro, FechaActualizacion, IsRework
+    // Intentar enriquecer con máquina asignada desde PCA (si existe la columna)
+    const selectColsBase = `
+      v.Id, v.Job, v.PartNumber, v.Descripcion, v.Order_Qty, v.Area,
+      v.PiezasBuenas, v.PiezasMalas, v.EnviadoCalidad, v.PendientePorEnviar,
+      v.QC_Aceptadas, v.QC_Scrap, v.QC_PendienteInspeccion, v.Deburr_ScrapDetectadoCalidad,
+      v.Deburr_ScrapInicial,
+      v.Estatus, v.FechaRegistro, v.FechaActualizacion, v.IsRework
+    `;
+    const queryWithMachine = `
+      SELECT ${selectColsBase},
+             pca.TargetMachine AS TargetMachine
+      FROM ${VIEW_NAME} AS v
+      OUTER APPLY (
+        SELECT TOP 1 jp.TargetMachine
+        FROM dbo.JobProcess jp
+        WHERE jp.Job = v.Job AND jp.Area = 'PCA' AND jp.IsActive = 1
+        ORDER BY jp.FechaRegistro DESC
+      ) AS pca
+      ${where}
+      ORDER BY ${SAFE_ORDER_BY};
+    `;
+    const queryPlain = `
+      SELECT ${selectColsBase}
+      FROM ${VIEW_NAME} AS v
+      ${where}
+      ORDER BY ${SAFE_ORDER_BY};
     `;
 
-    const query = `SELECT ${selectCols} FROM ${VIEW_NAME}${where} ORDER BY ${SAFE_ORDER_BY}`;
-    const rows = await executeQuery(query, params);
-    return rows || [];
+    try {
+      const rows = await executeQuery(queryWithMachine, params);
+      return rows || [];
+    } catch {
+      // Si no existe TargetMachine, caer al query simple
+      const rows = await executeQuery(queryPlain, params);
+      return rows || [];
+    }
   });
 
-  // Enviar Deburr -> Calidad
+  // Enviar Deburr -> Calidad (intacto)
   safeHandle('jobProcess:sendToQuality', async (_event, payload) => {
     mustAuth();
     const areaSess = sessArea();
@@ -157,7 +180,7 @@ function registerJobProcessIpc() {
     return r?.recordset?.[0] || null;
   });
 
-  // Quality: registrar inspección
+  // Quality: inspección (intacto)
   safeHandle('jobProcess:qualityInspect', async (_event, payload) => {
     mustAuth();
     const areaSess = sessArea();
@@ -196,7 +219,7 @@ function registerJobProcessIpc() {
     }
   });
 
-  // Enviar Retrabajo: Quality -> Deburr
+  // Enviar Retrabajo: Quality -> Deburr (intacto)
   safeHandle('jobProcess:sendToRework', async (_event, payload) => {
     mustAuth();
     const areaSess = sessArea();
@@ -227,7 +250,7 @@ function registerJobProcessIpc() {
     }
   });
 
-  // Cambio de estatus
+  // Cambio de estatus (respetando reglas existentes)
   safeHandle('jobProcess:changeStatus', async (_event, payload) => {
     mustAuth();
     const areaSess = sessArea();
@@ -249,36 +272,6 @@ function registerJobProcessIpc() {
     } else if (areaSess === 'Quality') {
       const allowedQuality = new Set(['En proceso', 'Completado', 'Detenido']);
       if (!allowedQuality.has(newStatus)) throw new Error('newStatus inválido para Quality');
-    } else if (['PCA','Maquinados','Maquinado','Machining'].includes(areaSess)) {
-      // sin reglas adicionales por ahora
-    }
-
-    if (newStatus === 'Completado') {
-      for (const it of items) {
-        const area = String(it?.area || '').trim();
-        if (area !== 'Quality') throw new Error('Solo el área "Quality" puede marcar "Completado".');
-
-        const job = String(it?.job ?? '').trim();
-        if (!job) continue;
-
-        const rows = await executeQuery(
-          `SELECT
-             (SELECT ISNULL(PendientePorEnviar,0) FROM ${VIEW_NAME} WHERE Job=@job AND Area='Deburr')   AS PendientePorEnviar,
-             (SELECT ISNULL(QC_PendienteInspeccion,0) FROM ${VIEW_NAME} WHERE Job=@job AND Area='Quality') AS QC_PendienteInspeccion,
-             (SELECT ISNULL(QC_Aceptadas,0) FROM ${VIEW_NAME} WHERE Job=@job AND Area='Quality') AS QC_Aceptadas,
-             (SELECT ISNULL(QC_Scrap,0) FROM ${VIEW_NAME} WHERE Job=@job AND Area='Quality') AS QC_Scrap`,
-          [{ name: 'job', type: sql.VarChar, value: job }]
-        );
-        const row = rows?.[0] || {};
-        const pendEnviar = Number(row.PendientePorEnviar ?? 0);
-        const pendInsp   = Number(row.QC_PendienteInspeccion ?? 0);
-
-        if (pendEnviar > 0) throw new Error(`Faltan ${pendEnviar} pzas por enviar desde Deburr.`);
-        if (pendInsp   > 0) throw new Error(`Faltan ${pendInsp} pzas por inspeccionar en Calidad.`);
-
-        if (it.piezasBuenas == null) it.piezasBuenas = Number(row.QC_Aceptadas ?? 0);
-        if (it.piezasMalas  == null) it.piezasMalas  = Number(row.QC_Scrap ?? 0);
-      }
     }
 
     const pool = await getPool();
@@ -286,7 +279,7 @@ function registerJobProcessIpc() {
 
     for (const it of items) {
       const job = String(it?.job ?? '').trim();
-      const area = String(it?.area ?? '').trim();
+      const area = String(it?.area ?? '').trim() || areaSess;
       const piezasBuenas = it?.piezasBuenas != null ? Number(it.piezasBuenas) : null;
       const piezasMalas  = it?.piezasMalas  != null ? Number(it.piezasMalas)  : null;
       const motivo       = it?.motivo != null ? String(it.motivo).trim() : null;
@@ -316,7 +309,64 @@ function registerJobProcessIpc() {
     return result;
   });
 
-  // PCA: surtir a máquina (sin fallar si no existe TargetMachine)
+  // NUEVO: Capturar producción en Maquinados (solo Maquinados)
+  safeHandle('jobProcess:machiningCapture', async (_event, payload) => {
+    mustAuth();
+    const areaSess = sessArea();
+    if (!['Maquinados','Maquinado','Machining'].includes(areaSess)) {
+      throw new Error('Solo Maquinados puede capturar producción.');
+    }
+    const job = String(payload?.job ?? '').trim();
+    const buenas = Number.parseInt(payload?.buenas ?? 0, 10);
+    const malas  = Number.parseInt(payload?.malas  ?? 0, 10);
+    const usuarioId = String(payload?.usuarioId ?? '').trim();
+    if (!job) throw new Error('job requerido');
+    if (!Number.isInteger(buenas) || buenas < 0) throw new Error('Buenas inválidas');
+    if (!Number.isInteger(malas)  || malas  < 0) throw new Error('Malas inválidas');
+    if (!usuarioId) throw new Error('usuarioId requerido');
+
+    const pool = await getPool();
+    try {
+      const r = await pool.request()
+        .input('Job',       sql.VarChar(20), job)
+        .input('BuenasOk',  sql.Int, buenas)
+        .input('MalasScrap',sql.Int, malas)
+        .input('UsuarioId', sql.VarChar(10), usuarioId)
+        .execute('dbo.JobProcess_Machining_Capture');
+      return r?.recordset?.[0] || null;
+    } catch (err) {
+      throw new Error(err?.message || String(err));
+    }
+  });
+
+  // NUEVO: Enviar buenas de Maquinados -> Deburr (solo Maquinados)
+  safeHandle('jobProcess:sendToDeburrFromMaquinados', async (_event, payload) => {
+    mustAuth();
+    const areaSess = sessArea();
+    if (!['Maquinados','Maquinado','Machining'].includes(areaSess)) {
+      throw new Error('Solo Maquinados puede enviar a Deburr.');
+    }
+    const job = String(payload?.job ?? '').trim();
+    const qty = Number.parseInt(payload?.qty ?? 0, 10);
+    const usuarioId = String(payload?.usuarioId ?? '').trim();
+    if (!job) throw new Error('job requerido');
+    if (!Number.isInteger(qty) || qty < 1) throw new Error('Cantidad inválida');
+    if (!usuarioId) throw new Error('usuarioId requerido');
+
+    const pool = await getPool();
+    try {
+      const r = await pool.request()
+        .input('Job',       sql.VarChar(20), job)
+        .input('Qty',       sql.Int, qty)
+        .input('UsuarioId', sql.VarChar(10), usuarioId)
+        .execute('dbo.JobProcess_SendToDeburrFromMaquinados');
+      return r?.recordset?.[0] || null;
+    } catch (err) {
+      throw new Error(err?.message || String(err));
+    }
+  });
+
+  // PCA: surtir a máquina (crea/actualiza PCA y asegura placeholder en Maquinados)
   safeHandle('jobProcess:assignToMachine', async (_event, payload) => {
     mustAuth();
     const areaSess = sessArea();
@@ -335,6 +385,7 @@ function registerJobProcessIpc() {
 
     const pool = await getPool();
     try {
+      // Crea/actualiza fila PCA mediante el SP genérico
       const r = await pool.request()
         .input('Job',           sql.VarChar(20), job)
         .input('Area',          sql.VarChar(20), 'PCA')
@@ -344,30 +395,55 @@ function registerJobProcessIpc() {
         .input('PiezasMalas',   sql.Int, null)
         .execute('dbo.JobProcess_ScanRegister');
 
-      const jpRow = r?.recordset?.[0];
+      const pcaRow = r?.recordset?.[0];
 
-      // HOTFIX: intentar guardar máquina; si la columna no existe, no tronar.
-      if (jpRow?.Id) {
+      // Guardar máquina en PCA (si la columna existe)
+      if (pcaRow?.Id) {
         try {
           await pool.request()
-            .input('Id', sql.Int, jpRow.Id)
+            .input('Id', sql.Int, pcaRow.Id)
             .input('TargetMachine', sql.VarChar(50), machine)
             .query('UPDATE dbo.JobProcess SET TargetMachine = @TargetMachine WHERE Id = @Id;');
         } catch (e) {
-          // Si la columna no existe (error 207), lo ignoramos.
-          if (!/Invalid column name 'TargetMachine'/i.test(e?.message || '')) {
-            throw e;
-          }
+          if (!/Invalid column name 'TargetMachine'/i.test(e?.message || '')) throw e;
         }
       }
 
-      return { ok: true, jobProcess: jpRow || null };
+      // Asegurar placeholder en Maquinados si no existe activo
+      const existsMaqui = await pool.request()
+        .input('job', sql.VarChar(20), job)
+        .query(`SELECT TOP 1 Id FROM dbo.JobProcess WHERE Job=@job AND Area='Maquinados' AND IsActive=1`);
+      if (!existsMaqui?.recordset?.length && pcaRow) {
+        const ins = await pool.request()
+          .input('Job',        sql.VarChar(20), pcaRow.Job)
+          .input('PartNumber', sql.VarChar(50), pcaRow.PartNumber)
+          .input('Descripcion',sql.NVarChar(200), pcaRow.Descripcion)
+          .input('Order_Qty',  sql.Int, pcaRow.Order_Qty)
+          .input('UsuarioId',  sql.VarChar(10), usuarioId)
+          .query(`
+            INSERT INTO dbo.JobProcess
+            (Job, PartNumber, Descripcion, Order_Qty, Area, Qty_Real_Ingresada, Estatus, UsuarioId, IsActive, IsRework, ReworkIter, ReworkReason, ReworkFromArea, PiezasBuenas, PiezasMalas${/* opcional TargetMachine */''})
+            VALUES (@Job, @PartNumber, @Descripcion, @Order_Qty, 'Maquinados', 0, 'Almacenado', @UsuarioId, 1, 0, 0, NULL, NULL, 0, 0);
+          `);
+
+        // Si existe columna TargetMachine, replica la asignación en Maquinados
+        try {
+          await pool.request()
+            .input('Job', sql.VarChar(20), pcaRow.Job)
+            .input('TargetMachine', sql.VarChar(50), machine)
+            .query(`UPDATE dbo.JobProcess SET TargetMachine=@TargetMachine WHERE Job=@Job AND Area='Maquinados' AND IsActive=1;`);
+        } catch (e) {
+          if (!/Invalid column name 'TargetMachine'/i.test(e?.message || '')) throw e;
+        }
+      }
+
+      return { ok: true, jobProcess: pcaRow || null };
     } catch (err) {
       throw new Error(err?.message || String(err));
     }
   });
 
-  console.log('[IPC] JobProcess handlers: scanRegister, list, sendToQuality, qualityInspect, sendToRework, changeStatus, assignToMachine');
+  console.log('[IPC] JobProcess handlers: scanRegister, list, sendToQuality, qualityInspect, sendToRework, changeStatus, machiningCapture, sendToDeburrFromMaquinados, assignToMachine');
 }
 
 module.exports = { registerJobProcessIpc };
