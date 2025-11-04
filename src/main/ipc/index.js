@@ -3,13 +3,11 @@ const { registerMaterialsIPC } = require('./materials.ipc');
 const { registerAuthIPC, getCurrentSession } = require('./auth.ipc');
 const { isAllowedExternal } = require('../security/hardening');
 const { createLoginWindow, getLoginWindow } = require('../windows/loginWindow');
-const { createDeburrWindow, getDeburrWindow } = require('../windows/deburrWindow');
-const { createCalidadWindow, getCalidadWindow } = require('../windows/calidadWindow');
-const { createSupplyWindow, getSupplyWindow } = require('../windows/supplyWindow');
-
-const { createPCAWindow, getPCAWindow } = require('../windows/pcaWindow');
-const { createMaquinadosWindow, getMaquinadosWindow } = require('../windows/maquinadosWindow');
-
+const { createDeburrWindow } = require('../windows/deburrWindow');
+const { createCalidadWindow } = require('../windows/calidadWindow');
+const { createSupplyWindow } = require('../windows/supplyWindow');
+const { createPCAWindow } = require('../windows/pcaWindow');
+const { createMaquinadosWindow } = require('../windows/maquinadosWindow');
 
 function nrm(s) { return String(s || '').trim().toLowerCase(); }
 
@@ -42,13 +40,10 @@ function registerAllIpc() {
     } else if (area === 'quality' || user.includes('calidad') || user.includes('quality')) {
       win = createCalidadWindow();
     } else if (area === 'pca' || user.includes('pca')) {
-      // NUEVO: PCA abre su ventana
       win = createPCAWindow();
     } else if (area === 'maquinados' || area === 'maquinado' || user.includes('maquinados')) {
-      // NUEVO: Maquinados abre su ventana
       win = createMaquinadosWindow();
     } else {
-      // fallback
       win = createDeburrWindow();
     }
 
@@ -57,7 +52,7 @@ function registerAllIpc() {
     return !!win;
   });
 
-  // NUEVO: cierra TODAS las ventanas excepto el login recién creado
+  // cierra todas las ventanas y abre login
   ipcMain.handle('app:open-login', async () => {
     const login = createLoginWindow();
     const all = BrowserWindow.getAllWindows();

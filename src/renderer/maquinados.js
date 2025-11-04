@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function setMsg(t){ if(msg) msg.textContent = t || ''; }
 
-  // Mostrar usuario en la cabecera (igual que otras vistas)
+  // Mostrar usuario en la cabecera
   try {
     const me = await window.api.auth.me();
     if (me?.user) {
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     meEl.textContent = 'Sin sesión';
   }
 
-  // Logout: reutiliza el handler estándar
+  // Logout
   btnLogout?.addEventListener('click', async () => {
     try {
       await window.api.auth.logout();
@@ -30,12 +30,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Registrar Job: reusar el modal de registro ya usado por Deburr/Quality
+  // Registrar Job (usa el modal estándar)
   btnRegister?.addEventListener('click', async () => {
     try {
       const me = await window.api.auth.me();
       const usuarioId = me?.user?.UsuarioId || me?.user?.UserName || 'system';
-      // Abrir modal (el modal devolverá un objeto con confirmed, job, qty, piezasBuenas, piezasMalas)
       const res = await window.api.modal.openScanRegister({ area: 'Maquinados' });
       if (!res?.confirmed) return;
       setMsg('Registrando...');
@@ -50,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       setMsg('Registrado');
       await loadList();
     } catch (e) {
-      setMsg(String(e));
+      setMsg(`Error: ${String(e?.message || e)}`);
     }
   });
 
@@ -64,22 +63,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!rows || !rows.length) { tbody.innerHTML = `<tr><td class="center" colspan="10">Sin registros</td></tr>`; return; }
       for(const r of rows){
         const tr = document.createElement('tr');
-        // allow selection style if needed later
         tr.classList.add('row-clickable');
-        tr.addEventListener('click', () => {
-          tr.classList.toggle('row-selected');
-        });
+        tr.addEventListener('click', () => tr.classList.toggle('row-selected'));
         const cells = [
-          r.Id,
-          r.Job,
-          r.PartNumber,
-          r.Descripcion,
-          r.Order_Qty,
-          r.Area,
-          r.PiezasBuenas ?? 0,
-          r.PiezasMalas ?? 0,
-          r.Estatus ?? '',
-          fmtDate(r.FechaRegistro)
+          r.Id, r.Job, r.PartNumber, r.Descripcion, r.Order_Qty, r.Area,
+          r.PiezasBuenas ?? 0, r.PiezasMalas ?? 0, r.Estatus ?? '', fmtDate(r.FechaRegistro)
         ];
         for(const c of cells){
           const td = document.createElement('td');
@@ -102,6 +90,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  // Primera carga
   await loadList();
 });
