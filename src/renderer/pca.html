@@ -2,43 +2,65 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>PCA - Surtido</title>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; img-src 'self' data:; style-src 'self'; object-src 'none'; base-uri 'self'">
+  <title>Módulo PCA - Surtido</title>
   <link rel="stylesheet" href="./styles/pca.css">
+  <script defer src="./pca.js"></script>
 </head>
 <body>
-  <div class="page">
-    <header class="page-header">
-      <button id="btnLogout" class="btn btn-secondary">Cerrar sesión</button>
-      <h1>Módulo PCA - Surtido</h1>
-      <div id="me" class="user-info"></div>
-    </header>
+  <header class="page-header">
+    <button id="btnLogout" class="btn btn-secondary">Cerrar sesión</button>
+    <h1>Módulo PCA - Surtido</h1>
+    <span id="statusMsg" class="muted"></span>
+  </header>
 
-    <section class="toolbar">
-      <div class="toolbar-left">
-        <input id="jobScan" placeholder="Escanea o escribe Job" />
-        <button id="btnLookup" class="btn">Buscar</button>
-        <select id="selMachine" style="min-width:200px"></select>
-        <button id="btnAssign" class="btn btn-primary">Asignar a máquina</button>
-        <button id="btnRefresh" class="btn">Refrescar</button>
-        <span id="pcaMsg" class="muted"></span>
-      </div>
-    </section>
+  <section class="toolbar">
+    <input id="inputJob" type="text" placeholder="Job">
+    <button id="btnSearch" class="btn">Buscar</button>
 
-    <section class="table-wrap">
-      <table id="pcaTable">
-        <thead>
-          <tr>
-            <th>Id</th><th>Job</th><th>PartNum</th><th>Descripción</th><th>Order Qty</th>
-            <th>Área</th><th>Buenas</th><th>Target Machine</th><th>Estatus</th><th>FechaReg</th>
-          </tr>
-        </thead>
-        <tbody id="pcaTbody">
-          <tr><td class="center" colspan="10">Cargando...</td></tr>
-        </tbody>
-      </table>
-    </section>
-  </div>
+    <select id="selMachine">
+      <option value="">Selecciona máquina</option>
+        <option value="A61">A61</option>
+        <option value="A51NX">A51NX</option>
+        <option value="DA300">DA300</option>
+        <option value="DOOSAN1">DOOSAN1</option>
+        <option value="DOOSAN2">DOOSAN2</option>
+        <option value="DVF6500">DVF6500</option>
+        <option value="GENOS1">GENOS1</option>
+        <option value="GENOS3">GENOS3</option>
+        <option value="MILLAC1">MILLAC1</option>
+        <option value="MILLAC2">MILLAC2</option>
+        <option value="MILLAC3">MILLAC3</option>
+        <option value="MILLAC4">MILLAC4</option>
+        <option value="MU8000">MU8000</option>
+        <option value="PS95">PS95</option>
+        <option value="ROUTER">ROUTER</option>
+        <option value="VF3">VF3</option>
+        <option value="VF6">VF6</option>
+        <option value="VR11-1">VR11-1</option>
+        <option value="VR11-2">VR11-2</option>
+    </select>
+    <button id="btnAssign" class="btn btn-warning">Surtir a Maquinados</button>
 
-  <script src="./pca.js"></script>
+    <div class="filters">
+      <label><input type="radio" name="fltMode" value="all" checked> Todos</label>
+      <label><input type="radio" name="fltMode" value="byJob"> Por Job</label>
+      <label><input type="radio" name="fltMode" value="mineToday"> Solo mis surtidos (hoy)</label>
+      <button id="btnRefresh" class="btn">Refrescar</button>
+    </div>
+  </section>
+
+  <section class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Id</th><th>Job</th><th>PartNum</th><th>Descripción</th>
+          <th>Order Qty</th><th>Área</th><th>Buenas</th><th>Target Machine</th><th>Estatus</th><th>FechaReg</th>
+        </tr>
+      </thead>
+      <tbody id="tblBody"><tr><td colspan="10">Sin registros</td></tr></tbody>
+    </table>
+  </section>
 </body>
 </html>

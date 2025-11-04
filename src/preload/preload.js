@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('api', {
     sendToDeburrFromMaquinados: (payload) => ipcRenderer.invoke('jobProcess:sendToDeburrFromMaquinados', payload),
     pcaSupplyToMachining: (payload) => ipcRenderer.invoke('jobProcess:pcaSupplyToMachining', payload),
 
+
   },
 
   erp: {
