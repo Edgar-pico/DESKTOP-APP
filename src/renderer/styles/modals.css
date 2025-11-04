@@ -15,12 +15,10 @@
   background: var(--bg);
 }
 
-.modal-title {
-  margin: 0 0 12px 0;
-}
+.modal-title { margin: 0 0 12px 0; }
 
 .row { margin: 10px 0; }
-label { display: block; margin-bottom: 6px; }
+label { display:block; margin-bottom:6px; }
 
 input[type="number"] {
   width: 100%;

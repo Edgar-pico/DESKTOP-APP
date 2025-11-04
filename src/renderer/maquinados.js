@@ -17,42 +17,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  let selected = new Set(); // guarda Jobs seleccionados (por Job)
+  let selected = new Set();
+  let lastRows = [];
+  const rowByJob = (job) => lastRows.find(r => String(r.Job) === String(job)) || null;
 
   function renderRows(rows){
+    lastRows = rows || [];
     tbody.innerHTML = '';
     if (!rows || !rows.length) { tbody.innerHTML = `<tr><td class="center" colspan="12">Sin registros</td></tr>`; return; }
     for(const r of rows){
       const tr = document.createElement('tr');
-
       const selTd = document.createElement('td');
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.checked = selected.has(r.Job);
-      cb.addEventListener('change', () => {
-        if (cb.checked) selected.add(r.Job); else selected.delete(r.Job);
-      });
+      cb.addEventListener('change', () => { if (cb.checked) selected.add(r.Job); else selected.delete(r.Job); });
       selTd.appendChild(cb);
 
       const cells = [
         selTd,
-        r.Id,
-        r.Job,
-        r.PartNumber,
-        r.Descripcion,
-        r.Order_Qty,
-        r.TargetMachine || '',
-        r.Area,
-        r.PiezasBuenas ?? 0,
-        r.PiezasMalas ?? 0,
-        r.Estatus ?? '',
-        fmtDate(r.FechaRegistro)
+        r.Id, r.Job, r.PartNumber, r.Descripcion, r.Order_Qty,
+        r.TargetMachine || '', r.Area,
+        r.PiezasBuenas ?? 0, r.PiezasMalas ?? 0,
+        r.Estatus ?? '', fmtDate(r.FechaRegistro)
       ];
-
       for(const c of cells){
         const td = document.createElement('td');
-        if (c instanceof HTMLElement) td.appendChild(c);
-        else { td.textContent = c ?? ''; td.title = String(c ?? ''); }
+        if (c instanceof HTMLElement) td.appendChild(c); else { td.textContent = c ?? ''; td.title = String(c ?? ''); }
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
@@ -73,11 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Mostrar usuario
   try {
     const me = await window.api.auth.me();
-    if (me?.user) {
-      meEl.textContent = `Usuario: ${me.user.Nombre || me.user.UserName} | Área: ${me.user.Area || '-'}`;
-    } else {
-      meEl.textContent = 'Sin sesión';
-    }
+    if (me?.user) meEl.textContent = `Usuario: ${me.user.Nombre || me.user.UserName} | Área: ${me.user.Area || '-'}`;
+    else meEl.textContent = 'Sin sesión';
   } catch { meEl.textContent = 'Sin sesión'; }
 
   // Logout
@@ -86,18 +74,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     catch (e) { setMsg(`Error al cerrar sesión: ${String(e)}`); }
   });
 
-  // Capturar producción (buenas/scrap) para el Job seleccionado (uno)
+  // Capturar producción (buenas/scrap) con validación de OrderQty
   btnCapture?.addEventListener('click', async () => {
     try {
       if (selected.size !== 1) { setMsg('Selecciona un (1) Job para capturar.'); return; }
       const job = Array.from(selected)[0];
-      const modalRes = await window.api.modal.openMachiningCapture({ job });
+      const row = rowByJob(job);
+      if (!row) { setMsg('No se encontró la fila seleccionada'); return; }
+      const orderQty = Number(row.Order_Qty || 0);
+
+      const modalRes = await window.api.modal.openMachiningCapture({ job, orderQty });
       if (!modalRes?.confirmed) return;
+
       const buenas = Number(modalRes?.buenas ?? 0);
       const malas  = Number(modalRes?.malas  ?? 0);
+
       if (!Number.isInteger(buenas) || buenas < 0 || !Number.isInteger(malas) || malas < 0) {
         setMsg('Valores inválidos'); return;
       }
+      if ((buenas + malas) !== orderQty) {
+        setMsg(`Buenas + Scrap (${buenas + malas}) debe ser exactamente OrderQty (${orderQty}).`);
+        return;
+      }
+
       const me = await window.api.auth.me();
       const usuarioId = me?.user?.UsuarioId || me?.user?.UserName || 'system';
       setMsg('Guardando...');
@@ -109,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Poner en proceso (puede aceptar múltiples seleccionados)
+  // Poner en proceso
   btnInProcess?.addEventListener('click', async () => {
     try {
       if (selected.size < 1) { setMsg('Selecciona al menos un Job'); return; }
@@ -120,24 +119,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       const res = await window.api.jobProcess.changeStatus({ newStatus: 'En proceso', usuarioId, items });
       if (res?.errors?.length) setMsg(`Hecho con errores: ${res.errors.length}`); else setMsg('Actualizado');
       await loadList();
-    } catch (e) {
-      setMsg(`Error: ${e?.message || e}`);
-    }
+    } catch (e) { setMsg(`Error: ${e?.message || e}`); }
   });
 
-  // Enviar a Deburr (solo buenas) para un Job seleccionado
+  // Enviar a Deburr (validación UI básica con OrderQty, validación estricta en SP)
   btnSendDeburr?.addEventListener('click', async () => {
     try {
       if (selected.size !== 1) { setMsg('Selecciona un (1) Job'); return; }
       const job = Array.from(selected)[0];
+      const row = rowByJob(job);
+      if (!row) { setMsg('No se encontró la fila seleccionada'); return; }
+      const orderQty = Number(row.Order_Qty || 0);
+
       const resNum = await window.api.modal.openPromptNumber({
         title: 'Enviar a Deburr',
         label: 'Cantidad a enviar (buenas):',
-        min: 1
+        min: 1,
+        max: orderQty,
+        step: 1
       });
       if (!resNum?.confirmed) return;
       const qty = Number(resNum.value || 0);
       if (!Number.isInteger(qty) || qty < 1) { setMsg('Cantidad inválida'); return; }
+      if (qty > orderQty) { setMsg(`No puedes enviar más del OrderQty (${orderQty}).`); return; }
+
       const me = await window.api.auth.me();
       const usuarioId = me?.user?.UsuarioId || me?.user?.UserName || 'system';
       setMsg('Enviando...');
