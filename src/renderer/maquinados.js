@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         r.PartNumber,
         r.Descripcion,
         r.Order_Qty,
-        r.TargetMachine || '', // puede venir null si la columna no existe
+        r.TargetMachine || '',
         r.Area,
         r.PiezasBuenas ?? 0,
         r.PiezasMalas ?? 0,
@@ -51,7 +51,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       for(const c of cells){
         const td = document.createElement('td');
-        if (c instanceof HTMLElement) td.appendChild(c); else { td.textContent = c ?? ''; td.title = String(c ?? ''); }
+        if (c instanceof HTMLElement) td.appendChild(c);
+        else { td.textContent = c ?? ''; td.title = String(c ?? ''); }
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
@@ -90,9 +91,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       if (selected.size !== 1) { setMsg('Selecciona un (1) Job para capturar.'); return; }
       const job = Array.from(selected)[0];
-      const buenas = parseInt(prompt('Buenas (OK):','0') || '0', 10);
-      const malas  = parseInt(prompt('Scrap (NO OK):','0') || '0', 10);
-      if (isNaN(buenas) || buenas < 0 || isNaN(malas) || malas < 0) { setMsg('Valores inválidos'); return; }
+      const modalRes = await window.api.modal.openMachiningCapture({ job });
+      if (!modalRes?.confirmed) return;
+      const buenas = Number(modalRes?.buenas ?? 0);
+      const malas  = Number(modalRes?.malas  ?? 0);
+      if (!Number.isInteger(buenas) || buenas < 0 || !Number.isInteger(malas) || malas < 0) {
+        setMsg('Valores inválidos'); return;
+      }
       const me = await window.api.auth.me();
       const usuarioId = me?.user?.UsuarioId || me?.user?.UserName || 'system';
       setMsg('Guardando...');
@@ -124,9 +129,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnSendDeburr?.addEventListener('click', async () => {
     try {
       if (selected.size !== 1) { setMsg('Selecciona un (1) Job'); return; }
-      const qty = parseInt(prompt('Cantidad a enviar a Deburr (Buenas):','0') || '0', 10);
-      if (!Number.isInteger(qty) || qty < 1) { setMsg('Cantidad inválida'); return; }
       const job = Array.from(selected)[0];
+      const resNum = await window.api.modal.openPromptNumber({
+        title: 'Enviar a Deburr',
+        label: 'Cantidad a enviar (buenas):',
+        min: 1
+      });
+      if (!resNum?.confirmed) return;
+      const qty = Number(resNum.value || 0);
+      if (!Number.isInteger(qty) || qty < 1) { setMsg('Cantidad inválida'); return; }
       const me = await window.api.auth.me();
       const usuarioId = me?.user?.UsuarioId || me?.user?.UserName || 'system';
       setMsg('Enviando...');

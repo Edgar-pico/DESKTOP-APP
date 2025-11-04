@@ -10,7 +10,6 @@ contextBridge.exposeInMainWorld('api', {
   vMaterialsList: (opts)       => ipcRenderer.invoke('db:vMaterials:list', opts),
   vMaterialsByPN: (partNumber) => ipcRenderer.invoke('db:vMaterials:byPN', partNumber),
 
-  // también podemos exponer variables, no solo funciones
   navigateToUrl: (url) => ipcRenderer.invoke('navigate-to-url', url),
   auth: {
     login: (username, password) => ipcRenderer.invoke('auth:login', { username, password }),
@@ -18,7 +17,7 @@ contextBridge.exposeInMainWorld('api', {
     logout: () => ipcRenderer.invoke('auth:logout'),
     changePassword: (oldPassword, newPassword) =>
       ipcRenderer.invoke('auth:changePassword', { oldPassword, newPassword }),
-    register: (data) => ipcRenderer.invoke('auth:register', data), // opcional
+    register: (data) => ipcRenderer.invoke('auth:register', data),
   },
 
   app: {
@@ -28,20 +27,24 @@ contextBridge.exposeInMainWorld('api', {
 
   modal: {
     openScanRegister: (payload) => ipcRenderer.invoke('modal:scan-register-open', payload),
+    // NUEVOS (evitan window.prompt)
+    openMachiningCapture: (payload) => ipcRenderer.invoke('modal:machining-capture-open', payload),
+    openPromptNumber: (payload) => ipcRenderer.invoke('modal:prompt-number-open', payload),
   },
 
-  // IPCs del flujo de JobProcess
   jobProcess: {
     scanRegister:   (payload) => ipcRenderer.invoke('jobProcess:scanRegister', payload),
     list:           (payload = null) => ipcRenderer.invoke('jobProcess:list', payload),
     changeStatus:   (payload) => ipcRenderer.invoke('jobProcess:changeStatus', payload),
-    sendToQuality:  (payload) => ipcRenderer.invoke('jobProcess:sendToQuality', payload),   // NUEVO
-    qualityInspect: (payload) => ipcRenderer.invoke('jobProcess:qualityInspect', payload),  // NUEVO
-    sendToRework: (payload) => ipcRenderer.invoke('jobProcess:sendToRework', payload),  // NUEVO
+    sendToQuality:  (payload) => ipcRenderer.invoke('jobProcess:sendToQuality', payload),
+    qualityInspect: (payload) => ipcRenderer.invoke('jobProcess:qualityInspect', payload),
+    sendToRework:   (payload) => ipcRenderer.invoke('jobProcess:sendToRework', payload),
     assignToMachine: (payload) => ipcRenderer.invoke('jobProcess:assignToMachine', payload),
+    // NUEVOS para Maquinados
+    machiningCapture: (payload) => ipcRenderer.invoke('jobProcess:machiningCapture', payload),
+    sendToDeburrFromMaquinados: (payload) => ipcRenderer.invoke('jobProcess:sendToDeburrFromMaquinados', payload),
   },
 
-  // Opcional: ERP
   erp: {
     getJobInfo: (job) => ipcRenderer.invoke('erp:getJobInfo', job),
   },

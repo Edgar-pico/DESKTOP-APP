@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'">
+  <title>Capturar producción</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 16px; color: #e5e7eb; background: #111827; }
+    .row { margin: 10px 0; }
+    label { display:block; margin-bottom:6px; }
+    input { width:100%; padding:8px; border-radius:6px; border:1px solid #374151; background:#0b1220; color:#e5e7eb; }
+    .actions { display:flex; gap:8px; justify-content:flex-end; margin-top: 16px; }
+    button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
+    .primary { background:#14b8a6; color:#0b1220; font-weight:600; }
+    .secondary { background:#374151; color:#e5e7eb; }
+  </style>
+</head>
+<body>
+  <h3>Capturar producción</h3>
+  <div class="row"><strong>Job:</strong> <span id="job"></span></div>
+  <div class="row">
+    <label for="buenas">Buenas (OK)</label>
+    <input id="buenas" type="number" min="0" step="1" value="0">
+  </div>
+  <div class="row">
+    <label for="malas">Scrap (NO OK)</label>
+    <input id="malas" type="number" min="0" step="1" value="0">
+  </div>
+  <div class="actions">
+    <button class="secondary" onclick="window.modalAPI.cancel()">Cancelar</button>
+    <button class="primary" onclick="window.modalAPI.submit()">Guardar</button>
+  </div>
+  <script src="../../preload/machining-capture-modal.js"></script>
+</body>
+</html>
