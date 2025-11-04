@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>PCA - Surtido</title>
+  <link rel="stylesheet" href="./styles/pca.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <button id="btnLogout" class="btn btn-secondary">Cerrar sesión</button>
+      <h1>Módulo PCA - Surtido</h1>
+      <div id="me" class="user-info"></div>
+    </header>
+
+    <section class="toolbar">
+      <div class="toolbar-left">
+        <input id="jobScan" placeholder="Escanea o escribe Job" />
+        <button id="btnLookup" class="btn">Buscar</button>
+        <select id="selMachine" style="min-width:200px"></select>
+        <button id="btnAssign" class="btn btn-primary">Asignar a máquina</button>
+        <button id="btnRefresh" class="btn">Refrescar</button>
+        <span id="pcaMsg" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="table-wrap">
+      <table id="pcaTable">
+        <thead>
+          <tr>
+            <th>Id</th><th>Job</th><th>PartNum</th><th>Descripción</th><th>Order Qty</th>
+            <th>Área</th><th>Buenas</th><th>Target Machine</th><th>Estatus</th><th>FechaReg</th>
+          </tr>
+        </thead>
+        <tbody id="pcaTbody">
+          <tr><td class="center" colspan="10">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <script src="./pca.js"></script>
+</body>
+</html>

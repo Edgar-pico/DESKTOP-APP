@@ -1,0 +1,25 @@
+@import './base.css';
+@import './tables.css';
+
+/* Acento para PCA */
+:root{
+  --primary: #f59e0b; /* amarillo/naranja suave para PCA */
+}
+
+/* Badge genérico (si no está ya en base.css) */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+/* Colores de estatus (puedes armonizar con deburr.css) */
+.status-almacenado { background: #2ecc71; }     /* verde */
+.status-en-proceso { background: #3498db; }    /* azul */
+.status-completado { background: #6c5ce7; }    /* morado */
+.status-detenido { background: #e74c3c; }      /* rojo */
+.status-rework { background: #f39c12; color: #111; } /* retrabajo naranja */
+.status-default { background: #7f8c8d; }       /* gris */

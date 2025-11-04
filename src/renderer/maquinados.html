@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Maquinados</title>
+  <link rel="stylesheet" href="./styles/maquinados.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <button id="btnLogout" class="btn btn-secondary">Cerrar sesión</button>
+      <h1>Módulo Maquinados</h1>
+      <div id="me" class="user-info"></div>
+    </header>
+
+    <section class="toolbar">
+      <div class="toolbar-left">
+        <button id="btnRegister" class="btn">Registrar Job</button>
+        <button id="btnRefresh" class="btn">Refrescar</button>
+        <span id="maquiMsg" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="table-wrap">
+      <table id="maquiTable">
+        <thead>
+          <tr><th>Id</th><th>Job</th><th>PartNum</th><th>Desc</th><th>OrderQty</th><th>Area</th><th>Buenas</th><th>Scrap</th><th>Estatus</th><th>FechaReg</th></tr>
+        </thead>
+        <tbody id="maquiTbody"><tr><td class="center" colspan="10">Cargando...</td></tr></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script src="./maquinados.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+@import './base.css';
+@import './tables.css';
+
+/* Acento para Maquinados (Machining) */
+:root{
+  --primary: #06b6d4; /* teal/cian para Maquinados */
+}
+
+/* Reusar badges (si están en base.css) o definir local override */
+.status-badge { display:inline-block; padding:4px 10px; border-radius:999px; color:#fff; font-size:0.85em; font-weight:600; }
+.status-almacenado { background: #2ecc71; }
+.status-en-proceso { background: #3498db; }
+.status-completado { background: #6c5ce7; }
+.status-detenido { background: #e74c3c; }
+.status-rework { background: #f39c12; color:#111; }
+.status-default { background: #7f8c8d; }
