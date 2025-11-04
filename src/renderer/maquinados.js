@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!rows || !rows.length) { tbody.innerHTML = `<tr><td class="center" colspan="10">Sin registros</td></tr>`; return; }
       for(const r of rows){
         const tr = document.createElement('tr');
-        // opcional: permitir seleccionar filas (como en calidad/deburr) si luego se requiere bulk actions
+        // allow selection style if needed later
         tr.classList.add('row-clickable');
         tr.addEventListener('click', () => {
           tr.classList.toggle('row-selected');

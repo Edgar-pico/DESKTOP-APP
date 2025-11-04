@@ -38,6 +38,7 @@ function sessArea() {
 
 function registerJobProcessIpc() {
   // Registrar (Deburr/Quality). Deburr: requiere Buenas/Scrap; Supply: prohibido
+  // Registrar (Deburr/Quality/PCA/Maquinados). Supply: prohibido
   ipcMain.handle('jobProcess:scanRegister', async (_event, payload) => {
     mustAuth();
     const areaSess = sessArea();
@@ -49,13 +50,16 @@ function registerJobProcessIpc() {
     const piezasOk  = payload?.piezasBuenas != null ? Number.parseInt(payload.piezasBuenas, 10) : null;
     const piezasNg  = payload?.piezasMalas  != null ? Number.parseInt(payload.piezasMalas, 10)  : null;
 
-    
-    // Forzar área por sesión
-  if (areaSess === 'Deburr') area = 'Deburr';
+    // Determinar área: por defecto la que viene en payload, pero LA SESIÓN TIENE PRIORIDAD.
+    let area = String(payload?.area ?? '').trim();
+
+    // Forzar área por sesión (si el usuario está en una de las áreas productivas)
+    // Esto evita que un usuario de Maquinados registre en Deburr, etc.
+    if (areaSess === 'Deburr') area = 'Deburr';
     else if (areaSess === 'Quality') area = 'Quality';
     else if (areaSess === 'PCA') area = 'PCA';
-    else if (areaSess === 'Maquinados') area = 'Maquinados';
-    else area = String(payload?.area ?? '').trim();
+    else if (areaSess === 'Maquinados' || areaSess === 'Maquinado' || areaSess === 'Machining') area = 'Maquinados';
+    // else leave area as passed in payload
 
     if (!job) throw new Error('Parámetro job es requerido');
     if (!area) throw new Error('Parámetro area es requerido');
@@ -78,6 +82,64 @@ function registerJobProcessIpc() {
       throw new Error(err?.message || String(err));
     }
   });
+
+  // Listar (filtra por área según sesión; Supply puede ver todas)
+  ipcMain.handle('jobProcess:list', async (_event, payload = null) => {
+    mustAuth();
+    const areaSess = sessArea();
+
+    let statusList = [];
+    let areaList = [];
+
+    if (Array.isArray(payload)) {
+      statusList = normalizeArray(payload);
+    } else if (payload && typeof payload === 'object') {
+      statusList = normalizeArray(payload.statusList);
+      areaList   = normalizeArray(payload.areaList);
+    }
+
+    // Forzar área por sesión y defender inclusión de 'Retrabajo' en Deburr
+    if (areaSess === 'Deburr') {
+      areaList = ['Deburr'];
+      if (!statusList.includes('Retrabajo')) statusList.push('Retrabajo');
+    } else if (areaSess === 'Quality') {
+      areaList = ['Quality'];
+    } else if (areaSess === 'PCA') {
+      areaList = ['PCA'];
+    } else if (areaSess === 'Maquinados' || areaSess === 'Maquinado' || areaSess === 'Machining') {
+      areaList = ['Maquinados'];
+    }
+
+    const clauses = [];
+    const params = [];
+
+    if (statusList.length > 0) {
+      const { placeholders, params: p } = buildInParams(statusList, 's');
+      clauses.push(`Estatus IN (${placeholders})`);
+      params.push(...p);
+    }
+    if (areaList.length > 0) {
+      const { placeholders, params: p } = buildInParams(areaList, 'a');
+      clauses.push(`Area IN (${placeholders})`);
+      params.push(...p);
+    }
+
+    const where = clauses.length ? ` WHERE ${clauses.join(' AND ')}` : '';
+
+    // SELECT estable incluyendo Scrap Deburr inicial
+    const selectCols = `
+      Id, Job, PartNumber, Descripcion, Order_Qty, Area,
+      PiezasBuenas, PiezasMalas, EnviadoCalidad, PendientePorEnviar,
+      QC_Aceptadas, QC_Scrap, QC_PendienteInspeccion, Deburr_ScrapDetectadoCalidad,
+      Deburr_ScrapInicial,
+      Estatus, FechaRegistro, FechaActualizacion, IsRework, TargetMachine
+    `;
+
+    const query = `SELECT ${selectCols} FROM ${VIEW_NAME}${where} ORDER BY ${SAFE_ORDER_BY}`;
+    const rows = await executeQuery(query, params);
+    return rows || [];
+  });
+
 
   // Listar (filtra por área según sesión: Deburr/Quality; Supply puede ver todas)
   ipcMain.handle('jobProcess:list', async (_event, payload = null) => {
