@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'">
+  <title>Capturar producción</title>
+  <link rel="stylesheet" href="../styles/modals.css">
+  <script defer src="./machining-capture.js"></script>
+</head>
+<body class="modal-body">
+  <h3 class="modal-title">Capturar producción</h3>
+
+  <div class="row"><strong>Job:</strong> <span id="job"></span></div>
+
+  <div class="row">
+    <label for="buenas">Buenas (OK)</label>
+    <input id="buenas" type="number" min="0" step="1" value="0">
+  </div>
+
+  <div class="row">
+    <label for="malas">Scrap (NO OK)</label>
+    <input id="malas" type="number" min="0" step="1" value="0">
+  </div>
+
+  <div class="actions">
+    <button id="btnCancel" class="btn secondary">Cancelar</button>
+    <button id="btnSave" class="btn primary">Guardar</button>
+  </div>
+</body>
+</html>

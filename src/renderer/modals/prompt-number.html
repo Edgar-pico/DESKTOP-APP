@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'">
+  <title id="title">Cantidad</title>
+  <link rel="stylesheet" href="../styles/modals.css">
+  <script defer src="./prompt-number.js"></script>
+</head>
+<body class="modal-body">
+  <h3 id="label" class="modal-title">Cantidad</h3>
+  <div class="row">
+    <input id="value" type="number" min="0" step="1" value="0">
+  </div>
+  <div class="actions">
+    <button id="btnCancel" class="btn secondary">Cancelar</button>
+    <button id="btnOk" class="btn primary">Aceptar</button>
+  </div>
+</body>
+</html>
