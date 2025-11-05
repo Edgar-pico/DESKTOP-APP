@@ -1,43 +1,56 @@
-/* Reglas comunes de tablas (centrado, scroll, sticky header, tooltips) */
-.table-wrap{
-  overflow: auto;         /* Scroll H y V */
-  max-height: 68vh;
-  margin: 0 auto;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--panel);
+/* Contenedor más alto para aprovechar la ventana */
+.table-wrap {
+  position: relative;
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 8px;
+  /* Altura pensada para caber bajo header/toolbar sin sensación de "apretado" */
+  max-height: calc(100vh - 220px);
+  overflow: auto;
 }
 
-.table-wrap table{
-  width: max-content;     /* crece con el contenido horizontal */
-  min-width: 100%;
+/* Tabla más legible */
+table {
+  width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  font-size: 15px;
+  line-height: 1.4;
 }
 
-.table-wrap thead th{
+/* Cabecera sticky */
+thead th {
   position: sticky;
   top: 0;
-  z-index: 2;
-  background: #15181c;
-  color: #d6d8db;
-  border-bottom: 1px solid var(--border);
+  z-index: 1;
+  background: #0f172a;  /* slate-900 */
+  color: #e5e7eb;
+  text-align: left;
+  font-weight: 600;
+  padding: 12px 10px;
+  border-bottom: 1px solid #1f2937;
 }
 
-.table-wrap th,
-.table-wrap td{
-  white-space: nowrap;     /* evita saltos de línea por defecto */
+/* Celdas de datos más altas */
+tbody td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #111827;
+  color: #cbd5e1;
+}
+
+/* Filas más altas para mejor “click target” */
+tbody tr {
+  min-height: 44px;
+}
+
+/* Zebra ligera para legibilidad */
+tbody tr:nth-child(odd) td {
+  background: #0b1324;
+}
+
+/* Estados de ayuda */
+td.center {
   text-align: center;
-  vertical-align: middle;
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: #94a3b8;
 }
-
-/* Alternado sutil */
-.table-wrap tbody tr:nth-child(odd) td{
-  background: rgba(255,255,255,0.015);
-}
-
-/* Columnas que sí pueden envolver (p.ej. Descripción) */
-.wrap{ white-space: normal; max-width: 320px; }
-.cell-date{ text-align: center; }

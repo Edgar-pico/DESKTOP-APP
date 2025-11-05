@@ -5,6 +5,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data:; style-src 'self'; object-src 'none'; base-uri 'self'">
   <title>Deburr</title>
   <link rel="stylesheet" href="./styles/deburr.css">
+  <link rel="stylesheet" href="./styles/ux-overrides.css">   <!-- nuevo -->
+  <link rel="stylesheet" href="./styles/modals.css">         <!-- nuevo: estiliza el modal in-page -->
 </head>
 <body>
   <div class="page">
@@ -59,6 +61,7 @@
     </section>
   </div>
 
+  <!-- Modal in-page de Deburr ya existente, ahora estilizado por modals.css -->
   <div id="qtyModal" class="modal-overlay" hidden>
     <div class="modal-panel" role="dialog" aria-labelledby="qtyTitle" aria-modal="true">
       <h3 id="qtyTitle">Enviar a Calidad</h3>
@@ -79,5 +82,4 @@
 
   <script src="./deburr.js"></script>
 </body>
-
 </html>

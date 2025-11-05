@@ -6,8 +6,114 @@
   --primary:#22c55e; /* verde para Supply */
 }
 
-/* Añadir estilo para Retrabajo (badge naranja similar a Deburr) */
+/* 1) Pantalla completa sin scroll del documento: solo scrollea la tabla */
+html, body {
+  height: 100%;
+  overflow: hidden;   /* evita el scroll externo del viewport */
+}
+
+/* 2) Layout en columna a 100vh; la tabla crece y scrollea dentro */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;      /* usa toda la ventana */
+  width: 100vw;
+  max-width: none;
+  margin: 0;
+  padding-inline: 20px;
+  padding-block: 18px;
+}
+
+/* Header y toolbar ocupan su tamaño natural */
+.page-header,
+.toolbar {
+  flex: 0 0 auto;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* 3) La tabla ocupa el resto, sin límites artificiales de altura */
+.page .table-wrap {
+  flex: 1 1 auto;     /* crece para llenar el espacio disponible */
+  min-height: 0;      /* clave: permite que el hijo con overflow funcione en flex */
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: none;   /* quita el calc(...) anterior para evitar doble scroll */
+  overflow: auto;     /* único scroll vertical */
+  padding: 8px;
+  border-radius: 14px;
+}
+
+/* Filtros más amplios y alineados a la derecha */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.filter span { opacity: .9; }
+.filter select { min-width: 240px; }
+
+/* Tabla a todo el ancho con cabecera sticky */
+#supplyTable {
+  width: 100%;
+  font-size: 15px;
+  line-height: 1.4;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+#supplyTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #0f172a;
+  color: #e5e7eb;
+  padding: 12px 12px;
+  border-bottom: 1px solid #1f2937;
+}
+#supplyTable tbody td {
+  padding: 12px 12px;
+  border-bottom: 1px solid #111827;
+}
+#supplyTable tbody tr:hover td { background: #0b1a2c; }
+
+/* Evitar cortes de contenido: nowrap por defecto, salvo descripción */
+#supplyTable th, #supplyTable td { white-space: nowrap; }
+
+/* La columna Descripción envuelve texto para reducir scroll horizontal */
+#supplyTable th.col-desc,
+#supplyTable td:nth-child(4) {
+  white-space: normal;
+  word-break: break-word;
+  max-width: 520px;
+}
+
+/* Anchos mínimos por columna */
+#supplyTable th:nth-child(1),  #supplyTable td:nth-child(1)  { min-width: 64px;  }  /* Id */
+#supplyTable th:nth-child(2),  #supplyTable td:nth-child(2)  { min-width: 120px; }  /* Job */
+#supplyTable th:nth-child(3),  #supplyTable td:nth-child(3)  { min-width: 160px; }  /* PartNumber */
+#supplyTable th:nth-child(4),  #supplyTable td:nth-child(4)  { min-width: 360px; }  /* Descripción */
+#supplyTable th:nth-child(5),  #supplyTable td:nth-child(5)  { min-width: 110px; }  /* Order Qty */
+#supplyTable th:nth-child(6),  #supplyTable td:nth-child(6)  { min-width: 110px; }  /* Área */
+#supplyTable th:nth-child(7),  #supplyTable td:nth-child(7)  { min-width: 120px; }  /* Buenas (QA) */
+#supplyTable th:nth-child(8),  #supplyTable td:nth-child(8)  { min-width: 110px; }  /* Scrap (QA) */
+#supplyTable th:nth-child(9),  #supplyTable td:nth-child(9)  { min-width: 130px; }  /* Scrap Recibido */
+#supplyTable th:nth-child(10), #supplyTable td:nth-child(10) { min-width: 120px; }  /* Enviado Cal */
+#supplyTable th:nth-child(11), #supplyTable td:nth-child(11) { min-width: 160px; }  /* Pen. Enviar */
+#supplyTable th:nth-child(12), #supplyTable td:nth-child(12) { min-width: 150px; }  /* Pen. Insp. */
+#supplyTable th:nth-child(13), #supplyTable td:nth-child(13) { min-width: 130px; }  /* Estatus */
+#supplyTable th:nth-child(14), #supplyTable td:nth-child(14) { min-width: 150px; }  /* FechaReg */
+#supplyTable th:nth-child(15), #supplyTable td:nth-child(15) { min-width: 150px; }  /* FechaAct */
+
+/* Estado Retrabajo (badge naranja, consistente con otras vistas) */
 .status-rework {
-  background: #f39c12; /* naranja */
+  background: #f39c12;
   color: #111;
 }

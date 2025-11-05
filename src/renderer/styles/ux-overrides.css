@@ -1,0 +1,67 @@
+:root{
+  --font-base: 16px;
+  --font-lg: 15px;
+  --radius: 12px;
+  --gap: 14px;
+  --gap-lg: 18px;
+  --pad: 14px;
+  --pad-lg: 18px;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-size: var(--font-base);
+  line-height: 1.35;
+}
+
+.page {
+  min-height: 100%;
+  padding: var(--pad-lg);
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  margin-bottom: var(--gap-lg);
+}
+
+.page-header h1 {
+  font-size: 1.6rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.toolbar, .bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  margin-bottom: var(--gap);
+  flex-wrap: wrap;
+}
+
+.toolbar-left, .bulk-left, .bulk-right {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  flex-wrap: wrap;
+}
+
+/* Controles más cómodos */
+input[type="text"],
+input[type="number"],
+select,
+button,
+.btn {
+  font-size: var(--font-lg);
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+/* Mensajes secundarios */
+.muted { opacity: 0.9; font-size: 0.95em; }
