@@ -96,6 +96,7 @@ function renderRows(rows) {
       r.Descripcion,
       r.Order_Qty,
       r.Area,
+      r.TargetMachine,
       buenas,
       scrapQa,
       scrapDeburr,
