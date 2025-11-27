@@ -129,7 +129,9 @@ safeHandle('jobProcess:list', async (_event, payload = null) => {
     v.Deburr_ScrapInicial,
     v.Estatus, v.FechaRegistro, v.FechaActualizacion, v.IsRework,
     j.TargetMachine,
-    j.UsuarioId
+    j.UsuarioId,
+    (SELECT ISNULL(SUM(PiezasBuenas), 0) FROM dbo.JobProcess WHERE Job = v.Job AND Area = 'Maquinados' AND IsActive = 1) AS Maquinados_Buenas,
+    (SELECT ISNULL(SUM(PiezasMalas), 0) FROM dbo.JobProcess WHERE Job = v.Job AND Area = 'Maquinados' AND IsActive = 1) AS Maquinados_Malas
   `;
   const query = `
     SELECT ${selectCols}
